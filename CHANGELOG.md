@@ -15,42 +15,32 @@
 
 ## 2.2.0
 
-### 改名（不兼容）
+### 功能变更
 
-- 包名 `dsh-prompt-optimizer` → `dsh-prompt-optimize`。原名与上游完全相同，装进 dsh 后市场与已安装列表无法区分，容易被误认为官方版本；MIT 授权的是代码版权，不涉及名称与身份标识，所以改名是必要的自我保护。
-- 连带改动：`dist/client.js` 的 `__ModuleLoader__` load id、`cordis.patch.yml` 的 insert id（`prompt-optimize`）与 name、HTTP/RPC 前缀 `/dsh-prompt-optimize/api`、配置文件 `~/.dsh/prompt-optimize-config.json`、调试日志 `prompt-optimize-debug.log`、localStorage 键 `dsh-prompt-optimize.memory.v1`、组件 id 与 CSS 注入 id。
-- **升级注意**：两个包名不同，旧包不会被自动替换。需先从 profile 的 `dependencies` 与 `dsh.profile.bundles` 移除 `dsh-prompt-optimizer`，再安装本包，否则会同时出现两个 ✨ 按钮。
-- **数据迁移**：localStorage 学习记录做了一次性迁移（读到旧键后写入新键并删除旧键）；配置文件因改名重新生成（此前为空配置，不影响使用）。
+- 设置页新增「优化强度」三档（轻改 / 标准 / 深度），可保存并生效。
+- 输出被长度上限截断时给出明确提示，不再返回不完整结果。
+- 包名与上游脱钩（不兼容）：load id、bundle 入口、HTTP 前缀、配置文件、localStorage 键与组件 id 同步更名，学习记录一次性迁移；最终定名见 2.3.0。
+
+### 修复
+
+- 宿主流式通道改用 JSON 帧载荷，修复英文/代码草稿的空格丢失与换行不还原。
+- 宿主流式错误不再被忽略，空结果按失败处理。
+- 修复配置缺失时预览卡卡在「正在优化」。
+- 修复会话模型模式下设置无法保存。
+- 修复复制结果后关闭被误记为负样本。
+- 修复记忆数据异常导致优化入口无响应。
+- 修复宿主任务常驻内存、调试日志无限增长。
+
+### 重要调整
+
+- 设置校验只在自定义模式要求接口地址、API Key 与模型名。
+- 宿主流式超时由 60 秒调整为 120 秒。
+- 抽取共享的输入框读写模块，合并宿主端重复的 RPC/HTTP 实现，删除未使用的代码。
+- 测试覆盖 66 项单测与 37 项冒烟。
 
 ### 文档
 
-- README 新增「上游与授权」章节：写明 MIT 授权依据、与上游无隶属与背书关系、发布前未与原作者沟通、对方有异议时的处理方式（改名／加强声明／下架）。
-
-### 修复（正确性）
-
-- **SSE 帧载荷改为 JSON**（`event: delta/reasoning` 的 `data` 从裸文本改为 `{"t":…}`、`event: error` 改为 `{"kind","m"}`）。旧实现「服务端手工把 `\n` 转义成字面 `\\n` + 客户端 `trim()`」会吃掉英文 token 首尾空格（"The goal" → "Thegoal"）、且从不反转义——英文/代码草稿的优化结果是实际损坏的。JSON 自带转义，空格、换行、字面反斜杠全部无损。
-- **客户端不再忽略 `error` 帧**：宿主侧生成失败此前被静默吞掉、空/半截结果被当作成功展示（点「替换草稿」可能把草稿清空）。现在 error/truncated 帧会浮出为明确的失败态。
-- **修复配置缺失时预览卡卡死**：`runOptimize` 先 `begin` 再 `guide`，而 reducer 在 `optimizing` 态直接忽略 `guide`，导致引导卡永不出现、按钮永久 busy。现在 `guide` 能从任意状态进入。
-- **补齐 intensity 三档的 UI 与持久化通路**：`light/standard/deep` 此前只在内核支持、设置表单既没有选择器、`saveConfig` 也不写 `intensity`——普通用户永远用不到。现已加入设置项选择器并写入配置文件。
-- **设置校验只在自定义模式生效**：旧版无条件要求 API Key 非空，与「零配置默认」定位冲突——只想用会话模型的用户在设置页根本保存不了。
-- **截断检测**：OpenAI 兼容路径检测 `finish_reason === 'length'`（宿主路径检测 finish 帧的 `kind === 'length'`），被 `max_tokens` 切断的半截结果不再静默返回，而是报「输出被长度上限截断」。
-- **记忆数据形状校验**：`localStorage` 是共享空间，手改/其他脚本/旧版本写入的脏数据此前会让 `buildContext` 的 `.slice()` 抛异常——而调用点在 `runOptimize` 的 try 之外，导致优化入口永久无响应。现在 `loadMemory` 逐项过滤非法样例与会话草稿。
-
-### 修复（健壮性）
-
-- **宿主任务 Map 清理**：`optimize.start` 的条目在 `done` 且被 poll 取走后立即删除，并对长期无人 poll 的僵尸条目兜底清扫——旧版只增不减，长驻桌面进程内存无限累积。
-- **调试日志轮转**：超过 2MB 自动轮转一份 `.1`，`DSH_PO_DEBUG=0` 可完全关闭（旧版无上限、每请求多次磁盘 IO）。
-- **宿主通道超时对齐 120s**：v4 系模型先输出长段推理，旧版外层 60s 会提前 abort 掉本可完成的流式。
-- **`resolveHostSessionModel` 契约修复**：注释承诺「不可得返回 null」，旧版无 try/catch，网络错误会直接 reject；现在任何失败都返回 null 由调用方回退。
-- **快捷键监听随插件卸载移除** + `e.repeat` 防抖（旧版热重载后监听器累积、按住 Alt+O 连发）。
-- **copy 语义修正**：复制走结果后再关闭，不再被误记成负样本污染反思画像。
-
-### 重构
-
-- **抽取 `src/composer.ts`**：输入框读写在 OptimizeButton 与 PreviewCard 里各复制了一份且已分叉，现统一为一个共享模块。
-- **`lib/index.js` 去重**：RPC 与 HTTP 两个面此前各复制一份 start/poll/abort/sessionModel（行为已漂移），现共用 `createTask`/`pollTask`/`abortTask`/`currentSessionModel`；删除无人调用的 `optimize.run` 死代码。
-- **删除死模块 `src/settings-epoch.ts`**（`classifyRefresh` 无生产调用方）。
-- **HTTP 路由先校验方法再读 body**（旧版 405 也先把请求体读完）。
+- README 新增「上游与授权」章节。
 
 ## 2.1.1
 
