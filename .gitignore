@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+dist/*
+!dist/client.js
+.tmp/
+pnpm-lock.yaml
+# 无关的本地目录（未跟踪，防止误提交）
+.dsh-vision-toolkit/
+pi-repo/
+
+# 上游 2.0.x 设计稿（润色器定位），与当前实现不符，不随本仓库分发
+docs/

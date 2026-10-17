@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 只装 esbuild（唯一的 devDependency）；运行时零依赖
+      - run: npm install --no-audit --no-fund
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Assembly smoke tests
+        run: npm run test:smoke
+
+      - name: Build client bundle
+        run: npm run build
+
+      - name: Bundle must register the package name as load id
+        run: |
+          grep -q 'id: "dsh-prompt-optimizer"' dist/client.js

@@ -1,0 +1,101 @@
+/** Prompt 优化插件文案 — 中英双语 */
+
+import type { Lang } from './optimizer.js';
+
+export const NS = 'prompt_optimizer';
+
+export const zh = {
+  'button.aria': '优化 prompt',
+  'card.title': '优化结果',
+  'card.replace': '替换草稿',
+  'card.copy': '复制',
+  'card.copyDone': '已复制',
+  'card.retry': '重新优化',
+  'card.dismiss': '放弃',
+  'card.optimizing': '正在优化…',
+  'card.configured.hint': '已配置 · 模型 {model}',
+  'card.unconfigured.hint': '未配置 API',
+  'guide.title': '请先配置 API',
+  'guide.desc': '前往 设置 → 通用设置 → Prompt 优化，填写接口地址、API Key 与模型名。',
+  'guide.action': '去设置',
+  'guide.dismiss': '知道了',
+  'error.unauthorized': 'API Key 无效或已过期',
+  'error.forbidden': '服务拒绝访问（403）',
+  'error.timeout': '请求超时，请检查网络与接口地址',
+  'error.network': '网络错误，请检查网络与接口地址',
+  'error.cors': '接口不支持跨域，请换用支持 CORS 的网关',
+  'error.http': '请求失败（HTTP 错误）',
+  'error.bad-response': '返回内容格式异常',
+  'error.empty': '返回内容为空，请重试',
+  'error.config': '配置不完整，请到设置中检查',
+  'settings.title': 'Prompt 优化',
+  'settings.desc': '配置润色接口（OpenAI 兼容）；Key 明文保存在本地',
+  'settings.baseUrl': '接口地址',
+  'settings.apiKey': 'API Key',
+  'settings.model': '模型名',
+  'settings.useSessionModel': '使用当前会话模型',
+  'settings.useSessionModelHint': '开启时优化请求跟随会话模型；关闭后使用下方自定义模型名',
+  'settings.sessionModelEnabled': '已选择会话默认模型',
+  'settings.hostProbe': '宿主通道探测中…',
+  'settings.hostOk': '会话模型通道 ✓',
+  'settings.hostFail': '会话模型通道不可用：',
+
+  'settings.save': '保存',
+  'settings.reset': '恢复默认',
+  'settings.saved': '已保存',
+  'settings.saveFailed': '保存失败',
+  'settings.resetFailed': '重置失败',
+  
+} as const;
+
+export const en: LocaleDict = {
+  'button.aria': 'Optimize prompt',
+  'card.title': 'Optimized prompt',
+  'card.replace': 'Use draft',
+  'card.copy': 'Copy',
+  'card.copyDone': 'Copied',
+  'card.retry': 'Retry',
+  'card.dismiss': 'Dismiss',
+  'card.optimizing': 'Optimizing…',
+  'card.configured.hint': 'Configured · model {model}',
+  'card.unconfigured.hint': 'No API configured',
+  'guide.title': 'Configure the API first',
+  'guide.desc': 'Go to Settings → General → Prompt Optimizer and fill in the endpoint, API key, and model.',
+  'guide.action': 'Go to settings',
+  'guide.dismiss': 'Got it',
+  'error.unauthorized': 'API key is invalid or expired',
+  'error.forbidden': 'Access forbidden (403)',
+  'error.timeout': 'Request timed out; check your network and endpoint',
+  'error.network': 'Network error; check your network and endpoint',
+  'error.cors': 'Endpoint blocks CORS; use a gateway that allows it',
+  'error.http': 'Request failed (HTTP error)',
+  'error.bad-response': 'Unexpected response format',
+  'error.empty': 'Empty result; please retry',
+  'error.config': 'Incomplete configuration; check settings',
+  'settings.title': 'Prompt Optimizer',
+  'settings.desc': 'Configure the rewrite endpoint (OpenAI-compatible); key is stored locally in plain text',
+  'settings.baseUrl': 'Base URL',
+  'settings.apiKey': 'API Key',
+  'settings.model': 'Model',
+  'settings.useSessionModel': 'Use current session model',
+  'settings.useSessionModelHint': 'When on, optimization requests follow the session model; when off, the custom model below is used',
+  'settings.sessionModelEnabled': 'Session default model selected',
+  'settings.hostProbe': 'probing host channel…',
+  'settings.hostOk': 'session model channel ✓',
+  'settings.hostFail': 'session model channel unavailable: ',
+
+  'settings.save': 'Save',
+  'settings.reset': 'Reset to defaults',
+  'settings.saved': 'Saved',
+  'settings.saveFailed': 'Save failed',
+  'settings.resetFailed': 'Reset failed',
+  
+} as const;
+
+export type LocaleKey = keyof typeof zh;
+export type LocaleDict = { [K in LocaleKey]: string };
+
+/** 激活 locale → 界面语言（zh 前缀归 zh，其余归 en） */
+export function langOf(active: string): Lang {
+  return typeof active === 'string' && active.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}

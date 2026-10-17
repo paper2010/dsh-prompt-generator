@@ -1,0 +1,69 @@
+{
+  "name": "dsh-prompt-optimizer",
+  "version": "2.1.0",
+  "description": "DSH 输入框 prompt 优化插件：一键把草稿重写为能直接驱动模型的高质量 prompt（改写幅度随草稿信息密度自适应，不套固定扩写倍数）。默认使用当前会话模型（零配置，SSE 流式 + 推理过程实时可见），也支持自配 OpenAI 兼容 API。",
+  "license": "MIT",
+  "author": "paper2010 <lizonghui2010@qq.com>",
+  "contributors": [
+    "winditer (upstream author of dsh-prompt-optimizer)"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/paper2010/dsh-prompt-optimizer.git"
+  },
+  "homepage": "https://github.com/paper2010/dsh-prompt-optimizer#readme",
+  "bugs": {
+    "url": "https://github.com/paper2010/dsh-prompt-optimizer/issues"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./dist/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "assets"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test.mjs",
+    "test:smoke": "node scripts/smoke.mjs"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "immediately": true
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "prompt",
+    "prompt-optimizer",
+    "prompt-engineering",
+    "deepseek",
+    "client"
+  ]
+}
