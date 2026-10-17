@@ -4,12 +4,21 @@
 
 > 本项目由 AI 辅助优化完成，标注位置与统一措辞见 README 的「AI 辅助说明」。
 
+## 2.3.0
+
+### 改名（不兼容，最终定名）
+
+- 包名 `dsh-prompt-architect` → **`dsh-prompt-optimize`**。2.2.0 那次改名方向正确（脱离与上游同名的 `dsh-prompt-optimizer`），但新名字偏离了插件本来的定位，本次定为 `dsh-prompt-optimize`。
+- 连带改动：`dist/client.js` 的 `__ModuleLoader__` load id、`cordis.patch.yml` 的 insert id（`prompt-optimize`）与 name、HTTP/RPC 前缀 `/dsh-prompt-optimize/api`、配置文件 `~/.dsh/prompt-optimize-config.json`、调试日志 `prompt-optimize-debug.log`、localStorage 键 `dsh-prompt-optimize.memory.v1`、组件 id 与 CSS 注入 id。
+- **升级注意**：包名再次变化，旧包同样不会被自动替换。需从 profile 的 `dependencies` 与 `dsh.profile.bundles` 移除旧条目（`dsh-prompt-optimizer` / `dsh-prompt-architect`），再安装本包，否则会出现多个 ✨ 按钮。
+- **数据迁移**：学习记录的旧键改为数组，按新到旧尝试 `dsh-prompt-architect.memory.v1` → `dsh-prompt-optimizer.memory.v1`，读到即写入新键并删除旧键。
+
 ## 2.2.0
 
 ### 改名（不兼容）
 
-- 包名 `dsh-prompt-optimizer` → `dsh-prompt-architect`。原名与上游完全相同，装进 dsh 后市场与已安装列表无法区分，容易被误认为官方版本；MIT 授权的是代码版权，不涉及名称与身份标识，所以改名是必要的自我保护。
-- 连带改动：`dist/client.js` 的 `__ModuleLoader__` load id、`cordis.patch.yml` 的 insert id（`prompt-architect`）与 name、HTTP/RPC 前缀 `/dsh-prompt-architect/api`、配置文件 `~/.dsh/prompt-architect-config.json`、调试日志 `prompt-architect-debug.log`、localStorage 键 `dsh-prompt-architect.memory.v1`、组件 id 与 CSS 注入 id。
+- 包名 `dsh-prompt-optimizer` → `dsh-prompt-optimize`。原名与上游完全相同，装进 dsh 后市场与已安装列表无法区分，容易被误认为官方版本；MIT 授权的是代码版权，不涉及名称与身份标识，所以改名是必要的自我保护。
+- 连带改动：`dist/client.js` 的 `__ModuleLoader__` load id、`cordis.patch.yml` 的 insert id（`prompt-optimize`）与 name、HTTP/RPC 前缀 `/dsh-prompt-optimize/api`、配置文件 `~/.dsh/prompt-optimize-config.json`、调试日志 `prompt-optimize-debug.log`、localStorage 键 `dsh-prompt-optimize.memory.v1`、组件 id 与 CSS 注入 id。
 - **升级注意**：两个包名不同，旧包不会被自动替换。需先从 profile 的 `dependencies` 与 `dsh.profile.bundles` 移除 `dsh-prompt-optimizer`，再安装本包，否则会同时出现两个 ✨ 按钮。
 - **数据迁移**：localStorage 学习记录做了一次性迁移（读到旧键后写入新键并删除旧键）；配置文件因改名重新生成（此前为空配置，不影响使用）。
 
@@ -64,7 +73,7 @@
 - **信息守恒**：四类关键信息必须完整保留且可定位（任务目标、范围、约束条件、期望输出），丢失任一项即判失败；反模式增加「信息已足够却继续堆砌」一例。
 - **输出形态约束**：真实换行，禁止字面 `\n`/`\t`/`\r`；分节用短标签或编号，不用 `#` 标题；不堆 `**` 加粗。
 - **生成参数**：`temperature` 0.7 → 0.35（减少措辞漂移与凭空补事实），`max_tokens` 2048 → 4096。
-- **记忆与自学习**：记录采纳 / 否决信号，每 3 次采纳触发一次复盘，把偏好画像注入下一轮 system prompt；数据仅存本地 `localStorage`（`dsh-prompt-architect.memory.v1`）。
+- **记忆与自学习**：记录采纳 / 否决信号，每 3 次采纳触发一次复盘，把偏好画像注入下一轮 system prompt；数据仅存本地 `localStorage`（`dsh-prompt-optimize.memory.v1`）。
 - **强度档位**：新增 `light / standard / deep` 三档，深度档对密集型输入改为输出「信息核对表」而非增加小节。
 
 ### 修复

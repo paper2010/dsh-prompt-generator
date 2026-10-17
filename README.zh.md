@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="assets/screenshot.png" width="70%" alt="dsh-prompt-architect 预览卡片">
+  <img src="assets/screenshot.png" width="70%" alt="dsh-prompt-optimize 预览卡片">
 </p>
 
-# dsh-prompt-architect
+# dsh-prompt-optimize
 
 [English](README.md) | 中文
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%5E22.19%20%7C%7C%20%3E%3D24-339933.svg)](package.json)
-[![dsh](https://img.shields.io/badge/dsh-plugin-2.2.0-2f6bff.svg)](cordis.patch.yml)
+[![dsh](https://img.shields.io/badge/dsh-plugin-2.3.0-2f6bff.svg)](cordis.patch.yml)
 
 > **本仓库是 [winditer/dsh-prompt-optimizer](https://github.com/winditer/dsh-prompt-optimizer) 的衍生版本（MIT）**，提示词内核已重写：从「润色器」改为「提示词架构师 + 信息密度自适应」，并加入记忆与自学习。差异见 [CHANGELOG.md](CHANGELOG.md) 的 2.1.0 条目。
 
@@ -28,7 +28,7 @@ DSH 输入框 prompt 优化插件：无需选中任何内容，直接输入草�
 - **自配接口模式**：取消「使用当前会话模型」后，可填任意 OpenAI 兼容 `/chat/completions` 端点（地址 + Key + 模型名）
 - **完成操作行**：替换草稿 / 一键复制 / 重新优化 / 放弃
 - **双语界面**：跟随 DSH 语言（中文 / English）实时切换，无需刷新
-- **配置自持持久化**：`~/.dsh/prompt-architect-config.json`（loopback RPC 读写，不依赖宿主 settings 注册表）
+- **配置自持持久化**：`~/.dsh/prompt-optimize-config.json`（loopback RPC 读写，不依赖宿主 settings 注册表）
 - **深色模式**：配色跟随 DSH 主题变量，深夜模式固定品牌蓝 + 白字保证可读
 - **纯本地凭据**：API Key（仅自配模式）只存本地配置文件，只发往你配置的接口
 
@@ -46,11 +46,11 @@ DSH 输入框 prompt 优化插件：无需选中任何内容，直接输入草�
 
 ## 📦 安装
 
-> Bundle 入口（`id: prompt-architect`）由本包的 `cordis.patch.yml` 自声明，无需手工补丁文件。
+> Bundle 入口（`id: prompt-optimize`）由本包的 `cordis.patch.yml` 自声明，无需手工补丁文件。
 
 ### 从 GitHub 安装（推荐）
 
-按仓库身份安装。包名是 `dsh-prompt-architect`，与上游 `dsh-prompt-optimizer` 在 dsh 的市场与已安装列表里可以区分开：
+按仓库身份安装。包名是 `dsh-prompt-optimize`，与上游 `dsh-prompt-optimizer` 在 dsh 的市场与已安装列表里可以区分开：
 
 ```sh
 dsh plugin --profile desktop add github:paper2010/dsh-prompt-optimizer
@@ -69,7 +69,7 @@ npm test             # 66 项单测 + 37 项装配冒烟
 dsh plugin --profile desktop add .
 ```
 
-> ℹ️ 本包未发布到 npm，请用上面的 `github:` 方式安装。包名原为 `dsh-prompt-optimizer`，与上游同名、容易让人误认作官方版本，自 2.2.0 起改为 `dsh-prompt-architect`；GitHub 仓库名保持不变。
+> ℹ️ 本包未发布到 npm，请用上面的 `github:` 方式安装。包名原为 `dsh-prompt-optimizer`，与上游同名、容易让人误认作官方版本，自 **2.3.0** 起定名 `dsh-prompt-optimize`（2.2.0 曾短暂使用 `dsh-prompt-architect`）；GitHub 仓库名保持不变。
 
 ### 源码开发方式
 
@@ -85,12 +85,12 @@ dsh plugin --profile desktop add .    # 按包名把工作区 link 进 profile
 ```jsonc
 {
   "dependencies": {
-    "dsh-prompt-architect": "link:/absolute/path/to/dsh-prompt-architect"
+    "dsh-prompt-optimize": "link:/absolute/path/to/dsh-prompt-optimizer"
     // ...
   },
   "dsh": {
     "profile": {
-      "bundles": [ /* ... */, "dsh-prompt-architect" ]
+      "bundles": [ /* ... */, "dsh-prompt-optimize" ]
     }
   }
 }
@@ -100,7 +100,7 @@ dsh plugin --profile desktop add .    # 按包名把工作区 link 进 profile
 
 ### 卸载
 
-从 profile 的 `dependencies` 与 `dsh.profile.bundles` 移除 `dsh-prompt-architect`，清理安装目录，如不再需要可删除配置文件 `~/.dsh/prompt-architect-config.json`。
+从 profile 的 `dependencies` 与 `dsh.profile.bundles` 移除 `dsh-prompt-optimize`，清理安装目录，如不再需要可删除配置文件 `~/.dsh/prompt-optimize-config.json`。
 
 ## 使用
 
@@ -146,7 +146,7 @@ dsh plugin --profile desktop add .    # 按包名把工作区 link 进 profile
 | 模型名 | `deepseek-v4-flash` | 模型名（跟随模式忽略） |
 | 优化强度 | `standard` | `light` 轻改 / `standard` 九段骨架 / `deep` 步骤判据与失败模式 |
 
-配置保存于 `~/.dsh/prompt-architect-config.json`（与 DSH 其他配置同目录，卸载插件时一并清理）。
+配置保存于 `~/.dsh/prompt-optimize-config.json`（与 DSH 其他配置同目录，卸载插件时一并清理）。
 
 > 自配接口需支持 CORS 与 SSE 流式（官方 DeepSeek / OneAPI 类网关均可）。
 
@@ -154,12 +154,12 @@ dsh plugin --profile desktop add .    # 按包名把工作区 link 进 profile
 
 一个包、两半：
 
-- **server half**（`lib/index.js`）：经 loopback RPC 通道（`/dsh-prompt-architect`，`get`/`set`）持久化配置；并经宿主 `webServer` 服务注册 HTTP JSON API（`/dsh-prompt-architect/api`）。经 `llm.stream` 跑会话默认优化；后台流存于内存 `Map`，任务完成即清理（无泄漏）。
-- **client half**（`src/*.ts`，esbuild 打包为 `dist/client.js`，包 `__ModuleLoader__.load({ id: "dsh-prompt-architect", … })`——id **必须等于**安装包名）。渲染进 `conversation.input.right`（按钮）、`conversation.input.overlay`（预览卡）与 `settings.general.item`（设置行）；与 host 用 `fetch` POST 通信。
+- **server half**（`lib/index.js`）：经 loopback RPC 通道（`/dsh-prompt-optimize`，`get`/`set`）持久化配置；并经宿主 `webServer` 服务注册 HTTP JSON API（`/dsh-prompt-optimize/api`）。经 `llm.stream` 跑会话默认优化；后台流存于内存 `Map`，任务完成即清理（无泄漏）。
+- **client half**（`src/*.ts`，esbuild 打包为 `dist/client.js`，包 `__ModuleLoader__.load({ id: "dsh-prompt-optimize", … })`——id **必须等于**安装包名）。渲染进 `conversation.input.right`（按钮）、`conversation.input.overlay`（预览卡）与 `settings.general.item`（设置行）；与 host 用 `fetch` POST 通信。
 
 ### Host API
 
-全部为 `POST /dsh-prompt-architect/api/<method>`；响应均为 `{ ok: true, value }` 或 `{ ok: false, error }`。
+全部为 `POST /dsh-prompt-optimize/api/<method>`；响应均为 `{ ok: true, value }` 或 `{ ok: false, error }`。
 
 | 方法 | Body | 返回 |
 | --- | --- | --- |
@@ -174,7 +174,7 @@ dsh plugin --profile desktop add .    # 按包名把工作区 link 进 profile
 ## 🔒 安全说明
 
 - **默认通道不发送任何凭据**——直接复用 harness 配置的 provider。
-- **自配模式的 API Key 只留本地**（`~/.dsh/prompt-architect-config.json`），只发往你配置的接口。
+- **自配模式的 API Key 只留本地**（`~/.dsh/prompt-optimize-config.json`），只发往你配置的接口。
 - 优化内容只出现在预览卡片；只有按 **替换草稿** 才会写入会话。
 
 ## 🔧 开发
@@ -194,8 +194,8 @@ src/session-optimizer.ts  宿主通道：sessionModel + SSE 流 + 降级轮询
 src/preview-state.ts  预览卡片状态机（纯 reducer）
 src/preview-bus.ts    模块级事件总线（按钮/卡片/编排共享）
 lib/index.js          server half — 配置持久化 + HTTP JSON API（makeHandler + createApiRoute）
-dist/client.js        构建产物（__ModuleLoader__ 格式，load id = dsh-prompt-architect）
-cordis.patch.yml      bundle 入口声明（insert: { id: prompt-architect, name: dsh-prompt-architect }）
+dist/client.js        构建产物（__ModuleLoader__ 格式，load id = dsh-prompt-optimize）
+cordis.patch.yml      bundle 入口声明（insert: { id: prompt-optimize, name: dsh-prompt-optimize }）
 scripts/build.mjs     构建脚本（esbuild + bundle 包装）
 tests/entry.ts        单元 + 集成测试（66）
 assets/               截图
@@ -214,7 +214,7 @@ assets/               截图
 
   ```yaml
   minimumReleaseAgeExclude:
-    - dsh-prompt-architect@2.2.0
+    - dsh-prompt-optimize@2.3.0
   ```
 
 ## 🤖 AI 辅助说明

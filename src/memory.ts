@@ -38,9 +38,10 @@ export interface MemoryState {
   stats: { accepted: number; rejected: number; acceptedSinceReflect: number };
 }
 
-const KEY = 'dsh-prompt-architect.memory.v1';
-/** 改名前的存储键（插件当时叫 dsh-prompt-optimizer）：只用于一次性迁移，迁完即删 */
-const LEGACY_KEY = 'dsh-prompt-optimizer.memory.v1';
+const KEY = 'dsh-prompt-optimize.memory.v1';
+/** 改名前的存储键，按新到旧排列：2.2.0 曾叫 dsh-prompt-architect，更早叫 dsh-prompt-optimizer。
+ *  仅在一次性迁移时使用，迁完即删，避免用户丢掉已积累的偏好。 */
+const LEGACY_KEYS = ['dsh-prompt-architect.memory.v1', 'dsh-prompt-optimizer.memory.v1'];
 const MAX_ACCEPTED = 12;
 const MAX_REJECTED = 8;
 const MAX_SESSION_DRAFTS = 10;
@@ -98,17 +99,19 @@ export function loadMemory(): MemoryState {
   if (!s) return empty();
   try {
     let raw = s.getItem(KEY);
-    // 改名迁移：新键为空时接住旧键里的学习记录，避免用户白白丢掉已积累的偏好
+    // 改名迁移：新键为空时按新到旧接住旧键里的学习记录
     if (!raw) {
-      const legacy = s.getItem(LEGACY_KEY);
-      if (legacy) {
+      for (const k of LEGACY_KEYS) {
+        const legacy = s.getItem(k);
+        if (!legacy) continue;
         raw = legacy;
         try {
           s.setItem(KEY, legacy);
-          s.removeItem(LEGACY_KEY);
+          s.removeItem(k);
         } catch {
           /* 配额或隐私模式受限：迁移失败不影响读取 */
         }
+        break;
       }
     }
     if (!raw) return empty();
