@@ -20,7 +20,7 @@ export interface SettingsRowProps {
 }
 
 
-const CSS_ID = 'dsh-prompt-optimizer/settings.css';
+const CSS_ID = 'dsh-prompt-architect/settings.css';
 function injectCss() {
   if (typeof document === 'undefined' || document.querySelector(`style[data-plugin-css="${CSS_ID}"]`)) return;
   const style = document.createElement('style');
@@ -126,11 +126,17 @@ export function SettingsRow(props: SettingsRowProps) {
   //    下次本地动作（edit/commit）再把 state.revision 抬到与纪元一致。
   useEffect(() => {
     actions.seed(
-      { baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model, useSessionModel: config.useSessionModel },
+      {
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey,
+        model: config.model,
+        useSessionModel: config.useSessionModel,
+        intensity: config.intensity,
+      },
       submitRevision + getEpoch(),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.baseUrl, config.apiKey, config.model, config.useSessionModel, getEpoch]);
+  }, [config.baseUrl, config.apiKey, config.model, config.useSessionModel, config.intensity, getEpoch]);
 
   // 「去设置」（预览卡未配置引导）→ 自动展开表单
   useEffect(() => onOpenSettingsRequest(() => setExpanded(true)), []);
@@ -157,7 +163,13 @@ export function SettingsRow(props: SettingsRowProps) {
     try {
       await resetConfig();
       actions.seed(
-        { baseUrl: DEFAULTS.baseUrl, apiKey: DEFAULTS.apiKey, model: DEFAULTS.model },
+        {
+          baseUrl: DEFAULTS.baseUrl,
+          apiKey: DEFAULTS.apiKey,
+          model: DEFAULTS.model,
+          useSessionModel: true,
+          intensity: DEFAULTS.intensity,
+        },
         submitRevision + 1 + getEpoch(),
       );
       setSubmitRevision((r) => r + 1);
@@ -209,6 +221,22 @@ export function SettingsRow(props: SettingsRowProps) {
               {t('settings.useSessionModel')}
             </label>
             <span className="optiSettingsHint">{t('settings.useSessionModelHint')}</span>
+          </div>
+          <div className="optiSettingsField">
+            <span className="optiSettingsLabel">{t('settings.intensity')}</span>
+            <div className="optiSettingsRow">
+              {(['light', 'standard', 'deep'] as const).map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  className={`optiSettingsBtn${values.intensity === level ? ' primary' : ''}`}
+                  onClick={() => actions.edit('intensity', level)}
+                >
+                  {t(`intensity.${level}`)}
+                </button>
+              ))}
+            </div>
+            <span className="optiSettingsHint">{t('settings.intensityHint')}</span>
           </div>
           <div className="optiSettingsField">
             <label className="optiSettingsLabel" htmlFor="opti-base-url">{t('settings.baseUrl')}</label>

@@ -1,14 +1,14 @@
 <p align="center">
-  <img src="assets/screenshot.png" width="70%" alt="dsh-prompt-optimizer preview card">
+  <img src="assets/screenshot.png" width="70%" alt="dsh-prompt-architect preview card">
 </p>
 
-# dsh-prompt-optimizer
+# dsh-prompt-architect
 
 English | [中文](README.zh.md)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%5E22.19%20%7C%7C%20%3E%3D24-339933.svg)](package.json)
-[![dsh](https://img.shields.io/badge/dsh-plugin-2.1.1-2f6bff.svg)](cordis.patch.yml)
+[![dsh](https://img.shields.io/badge/dsh-plugin-2.2.0-2f6bff.svg)](cordis.patch.yml)
 
 > **A derivative of [winditer/dsh-prompt-optimizer](https://github.com/winditer/dsh-prompt-optimizer) (MIT)** with the prompt kernel rewritten: from "polisher" to "prompt architect + information-density adaptive", plus memory and self-learning. See the 2.1.0 entry in [CHANGELOG.md](CHANGELOG.md) for the diff.
 
@@ -20,6 +20,7 @@ One-click prompt **rebuild** for the DSH composer: select nothing, just type a d
 
 - **One-click optimize** — a ✨ button on the composer's right; `Alt+O` while the composer is focused does the same
 - **Density-adaptive rewriting** — judge density first, then decide amplitude: **dense** drafts (three or more of goal / scope / constraints / expected output already present) are condensed and may end up shorter; only **sparse** drafts get completed. Four key elements (task goal / scope / constraints / expected output) are conserved — losing any one counts as a failure
+- **Three intensity tiers** — light (minimal edits) / standard (nine-section skeleton, default) / deep (step criteria + failure modes), switchable in settings
 - **Seven hard rules + anti-patterns** — intent fidelity, no fabrication, quantify over adjectives, negative constraints, single artifact, information conservation, with BAD/GOOD pairs for both "sparse input, wording-only fix" and "dense input, still padding"
 - **Memory & self-learning** — accepts and rejections are recorded; every 3 accepts triggers a reflection pass that distils a preference profile, injected into the next system prompt. Stored in local `localStorage` only
 - **True streaming preview** — real SSE over the harness `webServer`: every `text-delta` from `llm.stream` is pushed immediately and rendered token by token; **reasoning is streamed first**, so you watch the model think while it works
@@ -27,7 +28,7 @@ One-click prompt **rebuild** for the DSH composer: select nothing, just type a d
 - **Custom endpoint mode** — uncheck "follow session model" and plug in any OpenAI-compatible `/chat/completions` endpoint (base URL + key + model)
 - **Action row on completion** — replace the draft in place, copy, re-optimize, or dismiss
 - **Bilingual UI** — follows the DSH language (中文 / English) live, no reload
-- **Self-hosted config** — settings persist in `~/.dsh/prompt-optimizer-config.json` via a loopback RPC channel, independent of the host settings registry
+- **Self-hosted config** — settings persist in `~/.dsh/prompt-architect-config.json` via a loopback RPC channel, independent of the host settings registry
 - **Dark-mode ready** — all colors follow DSH theme variables; fixed brand blue + white text in deep-night mode
 - **Local-only credentials** — the API key (custom mode only) lives in the local config file and goes only to the endpoint you configured
 
@@ -45,15 +46,13 @@ One-click prompt **rebuild** for the DSH composer: select nothing, just type a d
 
 ## Install
 
-> The bundle entry (`id: prompt-optimizer`) is self-declared by this package's `cordis.patch.yml` —
+> The bundle entry (`id: prompt-architect`) is self-declared by this package's `cordis.patch.yml` —
 > no manual patch file is needed.
 
 ### From GitHub (recommended)
 
-Install by repository identity so the market can match your package to
-`paper2010/dsh-prompt-optimizer` unambiguously (several unrelated plugins
-share the npm name `dsh-prompt-optimizer`; a bare npm install hides the
-GitHub link and description in dshmarket):
+Install by repository identity. The package name is `dsh-prompt-architect`, so it stays distinguishable
+from the upstream `dsh-prompt-optimizer` in dsh's marketplace and installed list:
 
 ```sh
 dsh plugin --profile desktop add github:paper2010/dsh-prompt-optimizer
@@ -67,7 +66,7 @@ For a web profile, use `--profile web`. Restart DSH (quit fully and reopen), the
 git clone https://github.com/paper2010/dsh-prompt-optimizer.git && cd dsh-prompt-optimizer
 npm install           # esbuild only — zero runtime dependencies
 npm run build         # produces dist/client.js
-npm test              # 62 unit tests + 37 assembly smoke checks
+npm test              # 66 unit tests + 37 assembly smoke checks
 dsh plugin --profile desktop add .    # links the workspace into the profile by package name
 ```
 
@@ -76,12 +75,12 @@ Or install by hand: in the target profile's `package.json` (e.g. `~/.dsh/profile
 ```jsonc
 {
   "dependencies": {
-    "dsh-prompt-optimizer": "link:/absolute/path/to/dsh-prompt-optimizer"
+    "dsh-prompt-architect": "link:/absolute/path/to/dsh-prompt-architect"
     // ...
   },
   "dsh": {
     "profile": {
-      "bundles": [ /* ... */, "dsh-prompt-optimizer" ]
+      "bundles": [ /* ... */, "dsh-prompt-architect" ]
     }
   }
 }
@@ -91,7 +90,7 @@ then `pnpm install` inside the profile directory and restart DSH.
 
 ### Uninstall
 
-Remove `dsh-prompt-optimizer` from the profile's `dependencies` and `dsh.profile.bundles`, clean up the installed package, and delete the config file `~/.dsh/prompt-optimizer-config.json` if you no longer need it.
+Remove `dsh-prompt-architect` from the profile's `dependencies` and `dsh.profile.bundles`, clean up the installed package, and delete the config file `~/.dsh/prompt-architect-config.json` if you no longer need it.
 
 ## Usage
 
@@ -135,8 +134,9 @@ Open **设置 → 通用设置 → Prompt 优化**:
 | 接口地址 (base URL) | `https://api.deepseek.com` | Any OpenAI-compatible `/chat/completions` endpoint |
 | API Key | — | Your key for the custom route (ignored in follow mode) |
 | 模型名 | `deepseek-v4-flash` | Model name (ignored in follow mode) |
+| 优化强度 | `standard` | `light` minimal edits / `standard` nine-section skeleton / `deep` step criteria + failure modes |
 
-Settings are saved in `~/.dsh/prompt-optimizer-config.json` (same directory as other DSH config; removed with the plugin).
+Settings are saved in `~/.dsh/prompt-architect-config.json` (same directory as other DSH config; removed with the plugin).
 
 > Custom endpoints must support CORS and SSE streaming (official DeepSeek, OneAPI-style gateways work).
 
@@ -144,17 +144,17 @@ Settings are saved in `~/.dsh/prompt-optimizer-config.json` (same directory as o
 
 Two halves, one package:
 
-- **Host half** — `lib/index.js`. Persists config over a loopback RPC channel (`/dsh-prompt-optimizer`, `get`/`set`), and registers an HTTP JSON API at `/dsh-prompt-optimizer/api` through the harness `webServer` service. Runs the session-default optimization via `llm.stream`; background streams live in an in-memory `Map` cleared on unload.
-- **Client half** — `src/*.ts`, bundled to `dist/client.js` (esbuild, wrapped in `__ModuleLoader__.load({ id: "dsh-prompt-optimizer", … })`; the id **must** equal the installed package name). Renders into the `conversation.input.right` button, `conversation.input.overlay` preview card and `settings.general.item` row; talks to the host with `fetch` POSTs.
+- **Host half** — `lib/index.js`. Persists config over a loopback RPC channel (`/dsh-prompt-architect`, `get`/`set`), and registers an HTTP JSON API at `/dsh-prompt-architect/api` through the harness `webServer` service. Runs the session-default optimization via `llm.stream`; background streams live in an in-memory `Map`, entries removed once done (no leak).
+- **Client half** — `src/*.ts`, bundled to `dist/client.js` (esbuild, wrapped in `__ModuleLoader__.load({ id: "dsh-prompt-architect", … })`; the id **must** equal the installed package name). Renders into the `conversation.input.right` button, `conversation.input.overlay` preview card and `settings.general.item` row; talks to the host with `fetch` POSTs.
 
 ### Host API
 
-All endpoints are `POST /dsh-prompt-optimizer/api/<method>`; every response is `{ ok: true, value }` or `{ ok: false, error }`.
+All endpoints are `POST /dsh-prompt-architect/api/<method>`; every response is `{ ok: true, value }` or `{ ok: false, error }`.
 
 | Method | Body | Returns |
 | --- | --- | --- |
 | `sessionModel` | `{}` | `{ provider, model, reasoningEffort? }` — the session's default model |
-| `optimize.stream` | `{ provider, model, text, system?, reasoningEffort? }` | `text/event-stream` — `event: reasoning` frames first, then `event: delta` per token, `event: done` at the end |
+| `optimize.stream` | `{ provider, model, text, system?, reasoningEffort? }` | `text/event-stream` — `event: reasoning` frames first, then `event: delta` per token, `event: done` at the end. Frame `data` is JSON: `{"t":…}` for delta/reasoning, `{"kind","m"}` for error (e.g. `kind: "truncated"` on max_tokens cut) |
 | `optimize.start` | `{ provider, model, text, system?, reasoningEffort? }` | `{ taskId }` — background accumulation (fallback path) |
 | `optimize.poll` | `{ taskId }` | `{ done, text, error? }` — accumulated text while streaming |
 | `optimize.abort` | `{ taskId }` | `{ ok }` |
@@ -164,7 +164,7 @@ Protocol details: only `POST` is accepted (405 otherwise); the body is JSON with
 ## Security notes
 
 - **Default route sends no credentials** — it reuses the harness's configured provider.
-- The **custom-mode API key stays local** (`~/.dsh/prompt-optimizer-config.json`), and only goes to the endpoint you configured.
+- The **custom-mode API key stays local** (`~/.dsh/prompt-architect-config.json`), and only goes to the endpoint you configured.
 - Optimizations appear only in the preview card; the polished text reaches a session only if you press **替换草稿**.
 
 ## Development
@@ -184,10 +184,10 @@ src/session-optimizer.ts  Host channel: sessionModel + SSE stream + fallback pol
 src/preview-state.ts  Preview card state machine (pure reducer)
 src/preview-bus.ts    Module-level event bus shared by button / card / orchestration
 lib/index.js          Host half — config persistence + HTTP JSON API (makeHandler + createApiRoute)
-dist/client.js        Built client bundle (__ModuleLoader__ format, load id = dsh-prompt-optimizer)
-cordis.patch.yml      Bundle entry declaration (insert: { id: prompt-optimizer, name: dsh-prompt-optimizer })
+dist/client.js        Built client bundle (__ModuleLoader__ format, load id = dsh-prompt-architect)
+cordis.patch.yml      Bundle entry declaration (insert: { id: prompt-architect, name: dsh-prompt-architect })
 scripts/build.mjs     Build script (esbuild + bundle wrapper)
-tests/entry.ts        Unit + integration tests (61)
+tests/entry.ts        Unit + integration tests (66)
 assets/               Screenshot
 ```
 
@@ -204,7 +204,7 @@ assets/               Screenshot
 
   ```yaml
   minimumReleaseAgeExclude:
-    - dsh-prompt-optimizer@2.0.0
+    - dsh-prompt-architect@2.2.0
   ```
 
 ## 🤖 AI assistance
@@ -216,6 +216,16 @@ assets/               Screenshot
   - Source-file header comments: `src/index.ts`, `src/optimizer.ts`, `src/memory.ts`, `lib/index.js`, `scripts/build.mjs`
   - A permanent line on the plugin's settings page: locale key `settings.aiNotice`
 - **Canonical wording**: "AI-assisted" in English, "AI 辅助优化" in Chinese. Terms like "AI-generated" or "fully automatic" are deliberately avoided — they would overstate the AI's role and hide the human review step.
+
+## Upstream and licensing
+
+- **Origin**: upstream is [winditer/dsh-prompt-optimizer](https://github.com/winditer/dsh-prompt-optimizer), MIT-licensed; this repository is based on 2.0.3.
+- **Why this is permitted**: MIT allows use, copy, modification, merging, publication, distribution and sublicensing, on the condition that the copyright notice and permission text are retained. The [LICENSE](LICENSE) here keeps `Copyright (c) 2026 winditer` and adds a notice for the modifications, so no separate permission is required.
+- **Relationship to the upstream author**: **none — no affiliation, no endorsement.** The upstream author was **not contacted** before publication. This repository does not represent upstream's position, and upstream bears no responsibility for it.
+- **If the author objects**: open an issue here and it will be handled at their request — rename, add a more prominent disclaimer, or take the repository down.
+- **Naming**: the package deliberately does not reuse upstream's `dsh-prompt-optimizer` name, precisely so it is not mistaken for the official build. The repository URL keeps the old name only because renaming the repo would break existing references for no benefit.
+
+> The above is a plain reading of the MIT terms, not legal advice.
 
 ## License
 

@@ -6,6 +6,7 @@ import type { Lang, PromptConfig } from './optimizer.js';
 import { runOptimize, closePreview, reflectIfNeeded } from './optimizer-store.js';
 import { recordOutcome } from './memory.js';
 import { getPreviewBusState, subscribePreviewBus } from './preview-bus.js';
+import { readDraft, writeComposerText } from './composer.js';
 
 export interface PreviewCardProps {
   t: (key: string) => string;
@@ -17,7 +18,7 @@ export interface PreviewCardProps {
   getSessionId?: () => string | null;
 }
 
-const CSS_ID = 'dsh-prompt-optimizer/card.css';
+const CSS_ID = 'dsh-prompt-architect/card.css';
 function injectCss() {
   if (typeof document === 'undefined' || document.querySelector(`style[data-plugin-css="${CSS_ID}"]`)) return;
   const style = document.createElement('style');
@@ -94,82 +95,10 @@ function injectCss() {
   document.head.appendChild(style);
 }
 
-/** textarea 用 .value；contenteditable（DSH composer，Lexical div）用 innerText。 */
-function textOfInput(el: Element): string {
-  if (el instanceof HTMLTextAreaElement) return el.value;
-  if (el instanceof HTMLElement && el.isContentEditable) return el.innerText || '';
-  return '';
-}
-
-/** 是否 DSH 会话输入控件：textarea，或 composer 的 contenteditable 宿主。 */
-function isSessionInput(el: Element | null): boolean {
-  if (el === null) return false;
-  if (el instanceof HTMLTextAreaElement) return true;
-  const editable = el instanceof HTMLElement && el.isContentEditable;
-  const composer = el instanceof Element && el.closest('[data-composer-input]') !== null;
-  return editable || composer;
-}
-
-/** 找 composer 输入框：优先焦点，否则回退到页面中的 composer 宿主 / 第一个可用输入控件 */
-function findComposer(): Element | null {
-  const active = document.activeElement;
-  if (active && isSessionInput(active)) return active;
-  const composer = document.querySelector('[data-composer-input]');
-  if (composer && isSessionInput(composer)) return composer;
-  const all = document.querySelectorAll<HTMLTextAreaElement>('textarea');
-  for (const ta of all) {
-    if (!ta.disabled) return ta;
-  }
-  return null;
-}
-
-function readComposerText(): string {
-  const el = findComposer();
-  return el ? textOfInput(el) : '';
-}
-
-/**
- * 写回 composer。textarea 用原生 value setter + input 事件（让 React 受控组件感知）；
- * contenteditable（Lexical）用 select-all + execCommand('insertText')——lexical 监听原生
- * input，execCommand 会触发正确的编辑事件并把 DOM 同步回编辑器 state。
- */
-function writeComposerText(text: string): void {
-  const el = findComposer();
-  if (!el) return;
-  if (el instanceof HTMLTextAreaElement) {
-    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
-    if (setter) {
-      setter.call(el, text);
-    } else {
-      el.value = text;
-    }
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.focus();
-    return;
-  }
-  // contenteditable composer
-  if (el instanceof HTMLElement && el.isContentEditable) {
-    el.focus();
-    if (document.execCommand) {
-      const sel = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-      // 原生 input 事件（insertText 需要第二个参数 nonce 以满足某些浏览器安全检查）
-      document.execCommand('insertText', false, text);
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-      el.innerText = text;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-  }
-}
-
 function errorKey(kind: string | null): string {
   switch (kind) {
     // kind → locale key；'config' 在 UI 上不可达（runOptimize 先走 guide），AbortError→timeout 由 runOptimize 先行拦截，保留双保险
-    case 'unauthorized': case 'forbidden': case 'timeout': case 'network': case 'cors': case 'http': case 'bad-response': case 'empty': case 'config':
+    case 'unauthorized': case 'forbidden': case 'timeout': case 'network': case 'cors': case 'http': case 'bad-response': case 'empty': case 'truncated': case 'config':
       return `error.${kind}`;
     default:
       return 'error.network';
@@ -219,7 +148,7 @@ export function PreviewCard(props: PreviewCardProps) {
     void runOptimize({
       getConfig,
       getLang,
-      getDraft: () => readComposerText(),
+      getDraft: () => readDraft(),
       getSessionModel,
       host: getHost?.() ?? undefined,
       getSessionId,
@@ -236,16 +165,19 @@ export function PreviewCard(props: PreviewCardProps) {
     }
   };
 
-  /** 关闭 = 未采纳（只有在存在挂起结果时才计入负样本） */
+  /** 关闭 = 未采纳。但若已复制走结果，说明用户认可了产出（正样本），
+   *  旧版一律记负样本，会把「复制走」污染进反思画像。 */
   const dismiss = () => {
-    recordOutcome('rejected');
+    recordOutcome(hasCopiedRef.current ? 'accepted' : 'rejected');
     closePreview();
   };
 
+  const hasCopiedRef = useRef(false);
   const copy = async () => {
     if (!navigator.clipboard) return; // 非安全上下文（http 等）：不翻转 copied，保持可重试
     try {
       await navigator.clipboard.writeText(result);
+      hasCopiedRef.current = true; // 复制也算认可信号
       if (!mountedRef.current) return; // await 期间组件已卸载：不再 setState
       setCopied(true);
       if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);

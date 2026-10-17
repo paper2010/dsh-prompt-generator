@@ -1,13 +1,12 @@
 /** 单测入口 — 所有任务在此汇总断言（esbuild 打包后由 scripts/test.mjs 执行） */
 
 import assert from 'node:assert';
-import { DEFAULTS, mergeConfig, normalizeBaseUrl, checkConfig, buildSystemPrompt, buildRequestBody, extractResult, stripLeadIn, canTrigger, optimize, OptimizeError, toErrorKind, extractSseDelta, resolveSessionModel } from '../src/optimizer.js';
+import { DEFAULTS, mergeConfig, normalizeBaseUrl, checkConfig, buildSystemPrompt, buildRequestBody, extractResult, stripLeadIn, canTrigger, optimize, optimizeStream, OptimizeError, toErrorKind, extractSseDelta, extractSseFinishReason, resolveSessionModel } from '../src/optimizer.js';
 import { prefixDelta, resolveHostSessionModel, runHostOptimize, streamHostOptimize } from '../src/session-optimizer.js';
 import { NS, zh, en, langOf } from '../src/locales.js';
 import { INITIAL_PREVIEW, reducePreview, canOptimizeFrom } from '../src/preview-state.js';
 import { validateSettingsForm } from '../src/settings-form-state.js';
 import { INITIAL_SETTINGS_FORM, reduceSettingsForm } from '../src/settings-form-state.js';
-import { classifyRefresh } from '../src/settings-epoch.js';
 import { getPreviewBusState, dispatchPreview, subscribePreviewBus } from '../src/preview-bus.js';
 import { runOptimize } from '../src/optimizer-store.js';
 import { makeHandler } from '../lib/index.js';
@@ -73,6 +72,15 @@ async function runOptimizerTests(check: (name: string, fn: () => void | Promise<
       extractSseDelta('data: {"choices":[{"delta":{"content":"正文","reasoning_content":"推理"}}]}'),
       { kind: 'content', text: '正文' },
     );
+  });
+
+  await check('extractSseFinishReason: length/stop from SSE data, non-data/DONE → null', () => {
+    assert.strictEqual(extractSseFinishReason('data: {"choices":[{"delta":{"content":"x"}}]}'), null);
+    assert.strictEqual(extractSseFinishReason('data: {"choices":[{"delta":{},"finish_reason":"length"}]}'), 'length');
+    assert.strictEqual(extractSseFinishReason('data: {"choices":[{"delta":{},"finish_reason":"stop"}]}'), 'stop');
+    assert.strictEqual(extractSseFinishReason('data: [DONE]'), null);
+    assert.strictEqual(extractSseFinishReason('event: done'), null);
+    assert.strictEqual(extractSseFinishReason('data: {bad json'), null);
   });
 
   await check('checkConfig rejects missing key/model/bad url', () => {
@@ -262,6 +270,43 @@ async function runOptimizerTests(check: (name: string, fn: () => void | Promise<
     }
   });
 
+  await check('optimize finish_reason=length → truncated (not silently cut)', async () => {
+    const original = globalThis.fetch;
+    (globalThis as { fetch: unknown }).fetch = async () =>
+      new Response(JSON.stringify({ choices: [{ message: { content: '半截结果' }, finish_reason: 'length' }] }), { status: 200 });
+    try {
+      await assert.rejects(
+        optimize({ config: { ...DEFAULTS, apiKey: 'k' }, text: 'd', lang: 'zh' }),
+        (e: unknown) => e instanceof OptimizeError && e.kind === 'truncated',
+      );
+    } finally {
+      (globalThis as { fetch: unknown }).fetch = original;
+    }
+  });
+
+  await check('optimizeStream finish_reason=length → truncated, and token spaces survive', async () => {
+    const enc = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(enc.encode('data: {"choices":[{"delta":{"content":"The"}}]}\n\n'));
+        controller.enqueue(enc.encode('data: {"choices":[{"delta":{"content":" goal"}}]}\n\n'));
+        controller.enqueue(enc.encode('data: {"choices":[{"delta":{},"finish_reason":"length"}]}\n\n'));
+        controller.enqueue(enc.encode('data: [DONE]\n\n'));
+        controller.close();
+      },
+    });
+    const original = globalThis.fetch;
+    (globalThis as { fetch: unknown }).fetch = async () => ({ ok: true, status: 200, body: stream });
+    try {
+      await assert.rejects(
+        optimizeStream({ config: { ...DEFAULTS, apiKey: 'k' }, text: 'd', lang: 'en' }),
+        (e: unknown) => e instanceof OptimizeError && e.kind === 'truncated',
+      );
+    } finally {
+      (globalThis as { fetch: unknown }).fetch = original;
+    }
+  });
+
   await check('optimize aborted signal → timeout', async () => {
     const original = globalThis.fetch;
     const ac = new AbortController();
@@ -407,16 +452,16 @@ async function runIntegrationTests(check: (name: string, fn: () => void | Promis
         return { ok: true, value: true };
       },
     };
-    // 模拟真流式：多个 delta 帧分开发送（token 级）
+    // 模拟真流式：多个 delta 帧分开发送（token 级），载荷为 JSON（真实协议）
     const enc = new TextEncoder();
     const frames = [
       'event: start\ndata: {}\n\n',
-      'event: reasoning\ndata: 等\n\n',
-      'event: reasoning\ndata: 待\n\n',
-      'event: delta\ndata: 优\n\n',
-      'event: delta\ndata: 化\n\n',
-      'event: delta\ndata: 结\n\n',
-      'event: delta\ndata: 果\n\n',
+      'event: reasoning\ndata: {"t":"等"}\n\n',
+      'event: reasoning\ndata: {"t":"待"}\n\n',
+      'event: delta\ndata: {"t":"优"}\n\n',
+      'event: delta\ndata: {"t":"化"}\n\n',
+      'event: delta\ndata: {"t":"结"}\n\n',
+      'event: delta\ndata: {"t":"果"}\n\n',
       'event: done\ndata: {}\n\n',
     ];
     const stream = new ReadableStream({
@@ -464,10 +509,10 @@ async function runIntegrationTests(check: (name: string, fn: () => void | Promis
     const enc = new TextEncoder();
     const frames = [
       'event: start\ndata: {}\n\n',
-      'event: reasoning\ndata: 思\n\n',
-      'event: reasoning\ndata: 考\n\n',
-      'event: delta\ndata: 答\n\n',
-      'event: delta\ndata: 案\n\n',
+      'event: reasoning\ndata: {"t":"思"}\n\n',
+      'event: reasoning\ndata: {"t":"考"}\n\n',
+      'event: delta\ndata: {"t":"答"}\n\n',
+      'event: delta\ndata: {"t":"案"}\n\n',
       'event: done\ndata: {}\n\n',
     ];
     const stream = new ReadableStream({
@@ -500,6 +545,121 @@ async function runIntegrationTests(check: (name: string, fn: () => void | Promis
       assert.strictEqual(result, '答案');
       assert.deepStrictEqual(reasoning, ['思', '思考']);
       assert.deepStrictEqual(deltas, ['答', '答案']);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  await check('streamHostOptimize: English token spaces and newlines survive JSON frames', async () => {
+    const rpc = {
+      call: async (endpoint: string) => {
+        if (endpoint === 'sessionModel') return { ok: true, value: { provider: 'cmp-deepseek', model: 'm' } };
+        return { ok: true, value: true };
+      },
+    };
+    const enc = new TextEncoder();
+    const frames = [
+      'event: start\ndata: {}\n\n',
+      'event: delta\ndata: {"t":"The"}\n\n',
+      'event: delta\ndata: {"t":" goal"}\n\n',   // 前导空格必须保留（旧版 trim 会吃掉）
+      'event: delta\ndata: {"t":" is clear"}\n\n',
+      'event: delta\ndata: {"t":"\\n下一步"}\n\n', // 真实换行经 JSON 往返无损
+      'event: done\ndata: {}\n\n',
+    ];
+    const stream = new ReadableStream({
+      start(controller) {
+        for (const f of frames) controller.enqueue(enc.encode(f));
+        controller.close();
+      },
+    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => ({ ok: true, body: stream })) as typeof fetch;
+    try {
+      const result = await streamHostOptimize({
+        rpc: rpc as never,
+        text: 'x',
+        system: 's',
+        signal: new AbortController().signal,
+        onDelta: () => undefined,
+        onReasoning: () => undefined,
+      });
+      assert.strictEqual(result, 'The goal is clear\n下一步');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  await check('streamHostOptimize: host error frame surfaces as failure, not silent success', async () => {
+    const rpc = {
+      call: async (endpoint: string) => {
+        if (endpoint === 'sessionModel') return { ok: true, value: { provider: 'cmp-deepseek', model: 'm' } };
+        return { ok: true, value: true };
+      },
+    };
+    const enc = new TextEncoder();
+    const frames = [
+      'event: start\ndata: {}\n\n',
+      'event: error\ndata: {"kind":"error","m":"provider boom"}\n\n',
+      'event: done\ndata: {}\n\n',
+    ];
+    const stream = new ReadableStream({
+      start(controller) {
+        for (const f of frames) controller.enqueue(enc.encode(f));
+        controller.close();
+      },
+    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => ({ ok: true, body: stream })) as typeof fetch;
+    try {
+      await assert.rejects(
+        streamHostOptimize({
+          rpc: rpc as never,
+          text: 'x',
+          system: 's',
+          signal: new AbortController().signal,
+          onDelta: () => undefined,
+          onReasoning: () => undefined,
+        }),
+        (e: unknown) => e instanceof OptimizeError && e.kind === 'bad-response' && /provider boom/.test(e.message),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  await check('streamHostOptimize: truncated frame surfaces as truncated error', async () => {
+    const rpc = {
+      call: async (endpoint: string) => {
+        if (endpoint === 'sessionModel') return { ok: true, value: { provider: 'cmp-deepseek', model: 'm' } };
+        return { ok: true, value: true };
+      },
+    };
+    const enc = new TextEncoder();
+    const frames = [
+      'event: start\ndata: {}\n\n',
+      'event: error\ndata: {"kind":"truncated","m":"output truncated by max_tokens"}\n\n',
+      'event: done\ndata: {}\n\n',
+    ];
+    const stream = new ReadableStream({
+      start(controller) {
+        for (const f of frames) controller.enqueue(enc.encode(f));
+        controller.close();
+      },
+    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = (async () => ({ ok: true, body: stream })) as typeof fetch;
+    try {
+      await assert.rejects(
+        streamHostOptimize({
+          rpc: rpc as never,
+          text: 'x',
+          system: 's',
+          signal: new AbortController().signal,
+          onDelta: () => undefined,
+          onReasoning: () => undefined,
+        }),
+        (e: unknown) => e instanceof OptimizeError && e.kind === 'truncated',
+      );
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -544,9 +704,12 @@ async function runStateTests(check: (name: string, fn: () => void | Promise<void
     assert.strictEqual(reducePreview(fromError, { type: 'guide' }).status, 'guide');
   });
 
-  await check('guide while optimizing returns same reference', () => {
+  await check('guide applies even while optimizing (config-missing must not leave card stuck)', () => {
     const began = reducePreview(INITIAL_PREVIEW, { type: 'begin' });
-    assert.strictEqual(reducePreview(began, { type: 'guide' }), began);
+    const guided = reducePreview(began, { type: 'guide' });
+    assert.strictEqual(guided.status, 'guide');
+    assert.strictEqual(guided.draft, '');
+    assert.strictEqual(guided.step, null);
   });
 
   await check('reducePreview draft accumulates only while optimizing', () => {
@@ -582,16 +745,29 @@ async function runStateTests(check: (name: string, fn: () => void | Promise<void
     assert.notStrictEqual(failed, INITIAL_PREVIEW);
   });
 
-  await check('validateSettingsForm', () => {
-    assert.deepStrictEqual(validateSettingsForm({ baseUrl: 'https://a.com', apiKey: 'k', model: 'm', useSessionModel: true }), {});
-    assert.ok(validateSettingsForm({ baseUrl: '', apiKey: 'k', model: 'm', useSessionModel: true }).baseUrl);
-    assert.ok(validateSettingsForm({ baseUrl: 'https://a.com', apiKey: '', model: 'm', useSessionModel: true }).apiKey);
-    // 会话模型模式：model 可空
-    assert.ok(validateSettingsForm({ baseUrl: 'https://a.com', apiKey: 'k', model: '', useSessionModel: true }).model === undefined);
+  await check('validateSettingsForm: session-model mode skips endpoint validation', () => {
+    // 零配置模式：baseUrl/apiKey/model 都用不到，全部放行
+    // （旧版无条件要求 apiKey 非空，零配置用户在设置页根本保存不了）
+    assert.deepStrictEqual(
+      validateSettingsForm({ baseUrl: '', apiKey: '', model: '', useSessionModel: true, intensity: 'standard' }),
+      {},
+    );
+  });
+
+  await check('validateSettingsForm: custom mode requires baseUrl/apiKey/model', () => {
+    const base = { useSessionModel: false, intensity: 'standard' as const };
+    assert.ok(validateSettingsForm({ ...base, baseUrl: 'https://a.com', apiKey: '', model: 'm' }).apiKey);
+    assert.ok(validateSettingsForm({ ...base, baseUrl: '', apiKey: 'k', model: 'm' }).baseUrl);
+    assert.ok(validateSettingsForm({ ...base, baseUrl: 'https://a.com', apiKey: 'k', model: '' }).model);
+    // 合法完整配置
+    assert.deepStrictEqual(
+      validateSettingsForm({ ...base, baseUrl: 'https://a.com', apiKey: 'k', model: 'm' }),
+      {},
+    );
     // 自定义模式：model 必填
-    assert.ok(validateSettingsForm({ baseUrl: 'https://a.com', apiKey: 'k', model: '', useSessionModel: false }).model);
-    const bad = validateSettingsForm({ baseUrl: 'nonsense', apiKey: 'k', model: 'm', useSessionModel: true });
-    assert.ok(bad.baseUrl);
+    assert.ok(validateSettingsForm({ ...base, baseUrl: 'https://a.com', apiKey: 'k', model: '' }).model);
+    // 坏 URL
+    assert.ok(validateSettingsForm({ ...base, baseUrl: 'nonsense', apiKey: 'k', model: 'm' }).baseUrl);
   });
 
   await check('validateSettingsForm rejects ftp and query/hash', () => {
@@ -866,29 +1042,6 @@ async function runPreviewBusTests(check: (name: string, fn: () => void | Promise
   });
 }
 
-async function runEpochTests(check: (name: string, fn: () => void | Promise<void>) => void) {
-  await check('classifyRefresh: external when no pending write', () => {
-    const cur = { baseUrl: 'https://a.com', apiKey: 'k', model: 'm' };
-    assert.strictEqual(classifyRefresh(cur, null), 'external');
-  });
-
-  await check('classifyRefresh: in-progress during partial echoes, converged at full target', () => {
-    const target = { baseUrl: 'https://new.com', apiKey: 'k2', model: 'm2' };
-    const partials = [
-      { baseUrl: 'https://new.com', apiKey: 'k', model: 'm' },      // echo1: baseUrl only
-      { baseUrl: 'https://new.com', apiKey: 'k2', model: 'm' },     // echo2: baseUrl+apiKey
-    ];
-    for (const p of partials) assert.strictEqual(classifyRefresh(p, target), 'in-progress');
-    assert.strictEqual(classifyRefresh(target, target), 'converged');
-  });
-
-  await check('classifyRefresh: external edit mid-round is not converged', () => {
-    const target = { baseUrl: 'https://new.com', apiKey: 'k2', model: 'm2' };
-    const ext = { baseUrl: 'https://new.com', apiKey: 'k2', model: 'external' };
-    assert.strictEqual(classifyRefresh(ext, target), 'in-progress');
-  });
-}
-
 export async function run(): Promise<boolean> {
   const results: string[] = [];
   const failures: string[] = [];
@@ -933,7 +1086,6 @@ export async function run(): Promise<boolean> {
   await runOptimizeStoreTests(check);
   await runSettingsStoreTests(check);
   await runPreviewBusTests(check);
-  await runEpochTests(check);
 
   for (const r of results) console.log(r);
   if (failures.length > 0) {

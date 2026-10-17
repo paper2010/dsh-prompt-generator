@@ -38,7 +38,9 @@ export interface MemoryState {
   stats: { accepted: number; rejected: number; acceptedSinceReflect: number };
 }
 
-const KEY = 'dsh-prompt-optimizer.memory.v1';
+const KEY = 'dsh-prompt-architect.memory.v1';
+/** 改名前的存储键（插件当时叫 dsh-prompt-optimizer）：只用于一次性迁移，迁完即删 */
+const LEGACY_KEY = 'dsh-prompt-optimizer.memory.v1';
 const MAX_ACCEPTED = 12;
 const MAX_REJECTED = 8;
 const MAX_SESSION_DRAFTS = 10;
@@ -64,21 +66,60 @@ function storage(): Storage | null {
   }
 }
 
+/** 过滤非法样例项（draft/result 必须是非空字符串）——localStorage 是共享空间，
+ *  手改/其他脚本/旧版本写入的脏数据不该让 buildContext 的 .slice() 抛异常。 */
+function asSamples(v: unknown): Sample[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter(
+    (x): x is Sample =>
+      x !== null &&
+      typeof x === 'object' &&
+      typeof (x as Sample).draft === 'string' &&
+      (x as Sample).draft.length > 0 &&
+      typeof (x as Sample).result === 'string' &&
+      (x as Sample).result.length > 0,
+  );
+}
+
+/** 过滤非法会话草稿表（每个键的值必须是字符串数组）。 */
+function asDraftMap(v: unknown): Record<string, string[]> {
+  if (v === null || typeof v !== 'object' || Array.isArray(v)) return {};
+  const out: Record<string, string[]> = {};
+  for (const [k, list] of Object.entries(v as Record<string, unknown>)) {
+    if (!Array.isArray(list)) continue;
+    const strs = list.filter((d): d is string => typeof d === 'string' && d.length > 0);
+    if (strs.length) out[k] = strs.slice(-MAX_SESSION_DRAFTS);
+  }
+  return out;
+}
+
 export function loadMemory(): MemoryState {
   const s = storage();
   if (!s) return empty();
   try {
-    const raw = s.getItem(KEY);
+    let raw = s.getItem(KEY);
+    // 改名迁移：新键为空时接住旧键里的学习记录，避免用户白白丢掉已积累的偏好
+    if (!raw) {
+      const legacy = s.getItem(LEGACY_KEY);
+      if (legacy) {
+        raw = legacy;
+        try {
+          s.setItem(KEY, legacy);
+          s.removeItem(LEGACY_KEY);
+        } catch {
+          /* 配额或隐私模式受限：迁移失败不影响读取 */
+        }
+      }
+    }
     if (!raw) return empty();
     const parsed = JSON.parse(raw) as Partial<MemoryState>;
     const base = empty();
     return {
       ...base,
       profile: typeof parsed.profile === 'string' ? parsed.profile : '',
-      accepted: Array.isArray(parsed.accepted) ? parsed.accepted.slice(0, MAX_ACCEPTED) : [],
-      rejected: Array.isArray(parsed.rejected) ? parsed.rejected.slice(0, MAX_REJECTED) : [],
-      sessionDrafts:
-        parsed.sessionDrafts && typeof parsed.sessionDrafts === 'object' ? parsed.sessionDrafts : {},
+      accepted: asSamples(parsed.accepted).slice(0, MAX_ACCEPTED),
+      rejected: asSamples(parsed.rejected).slice(0, MAX_REJECTED),
+      sessionDrafts: asDraftMap(parsed.sessionDrafts),
       stats: {
         accepted: Number(parsed.stats?.accepted) || 0,
         rejected: Number(parsed.stats?.rejected) || 0,

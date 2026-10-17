@@ -67,7 +67,18 @@ export function reducePreview(state: PreviewState, action: PreviewAction): Previ
         ? { ...state, status: 'error', errorKind: action.kind, errorDetail: action.detail ?? null }
         : state;
     case 'guide':
-      return state.status === 'optimizing' ? state : { ...state, status: 'guide' };
+      // guide 是 runOptimize 在「配置缺失」时的终态，必须能从任何状态进入——
+      // 旧版在 optimizing 态直接忽略，而 runOptimize 先 begin 再 guide，
+      // 导致引导卡被吞、状态卡死在「正在优化」（实测 bug）。
+      return {
+        ...state,
+        status: 'guide',
+        errorKind: null,
+        errorDetail: null,
+        draft: '',
+        reasoning: '',
+        step: null,
+      };
     case 'close':
       return INITIAL_PREVIEW;
     case 'draft':

@@ -1,15 +1,24 @@
 /** 设置表单校验 —— 纯函数，无 DSH 依赖 */
 
+import { DEFAULT_INTENSITY, type Intensity } from './optimizer.js';
+
 export interface SettingsFormValues {
   baseUrl: string;
   apiKey: string;
   model: string;
   /** true：优化使用当前会话模型；false：使用 model */
   useSessionModel: boolean;
+  /** 优化强度：light / standard / deep（保存时由 mergeConfig 归一化） */
+  intensity: Intensity;
 }
 
 export function validateSettingsForm(values: SettingsFormValues): Record<string, string> {
   const errors: Record<string, string> = {};
+
+  // 零配置（会话模型）模式：baseUrl/apiKey/model 都用不到，不做校验。
+  // 旧版无条件要求 apiKey 非空，导致只想用会话模型的用户在设置页根本无法保存——
+  // 与「零配置默认」的产品定位直接冲突。
+  if (values.useSessionModel) return errors;
 
   const url = values.baseUrl.trim();
   if (!url) {
@@ -25,7 +34,7 @@ export function validateSettingsForm(values: SettingsFormValues): Record<string,
   }
 
   if (!values.apiKey.trim()) errors.apiKey = 'settings.apiKey';
-  if (!values.useSessionModel && !values.model.trim()) errors.model = 'settings.model';
+  if (!values.model.trim()) errors.model = 'settings.model';
 
   return errors;
 }
@@ -39,7 +48,7 @@ export interface SettingsFormState {
 }
 
 export const INITIAL_SETTINGS_FORM: SettingsFormState = {
-  values: { baseUrl: '', apiKey: '', model: '', useSessionModel: true },
+  values: { baseUrl: '', apiKey: '', model: '', useSessionModel: true, intensity: DEFAULT_INTENSITY },
   dirty: false,
   saved: false,
   error: null,

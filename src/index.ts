@@ -1,5 +1,5 @@
 // 本项目由 AI 辅助优化完成（提示词内核、测试与文档），发布前经人工审阅。
-/** dsh-prompt-optimizer 插件入口 — apply(ctx) */
+/** dsh-prompt-architect 插件入口 — apply(ctx) */
 
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
 import type { Lang, PromptConfig } from './optimizer.js';
@@ -23,10 +23,10 @@ export const inject = ['slots', 'sessions', 'locale'];
 
 export function apply(ctx: ClientContext) {
   // 1. 文案
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'prompt-optimizer: locale registration');
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'prompt-architect: locale registration');
 
-  // 2. 配置镜像：HTTP API（server half 读写 ~/.dsh/prompt-optimizer-config.json，
-  // 通道 '/dsh-prompt-optimizer/api/get|set'）。原先走 connection.rpc 环回通道，但桌面
+  // 2. 配置镜像：HTTP API（server half 读写 ~/.dsh/prompt-architect-config.json，
+  // 通道 '/dsh-prompt-architect/api/get|set'）。原先走 connection.rpc 环回通道，但桌面
   // 宿主运行时没有 connection 服务（fiber 永久 PENDING → 启动挂死），统一走 webServer HTTP。
   let configMirror: PromptConfig = mergeConfig(undefined);
   let configEpoch = 0;
@@ -61,7 +61,7 @@ export function apply(ctx: ClientContext) {
     return typeof sessionId === 'string' && sessionId.length > 0 ? sessionId : null;
   };
   // 2.6 宿主通道（会话默认模型 + server 半 llm.stream，零配置）：
-  // 通道即自有 RPC（/dsh-prompt-optimizer）；server half 用 agentDefaultModel 取当前
+  // 通道即自有 RPC（/dsh-prompt-architect）；server half 用 agentDefaultModel 取当前
   // 会话模型、llm.stream 真流式（取自 dsh-elf 已验证的宿主服务面）。不用 session.create/
   // fork：后台会话不在前台不触发模型执行，自编 id 被静默拒绝 → 「永远正在优化」（实测）。
   const hostRpc: HostRpc = {
@@ -98,7 +98,7 @@ export function apply(ctx: ClientContext) {
       scope.slots.register(
         {
           name: 'conversation.input.right',
-          id: 'prompt-optimizer-button',
+          id: 'prompt-architect-button',
           order: 0,
           locale: NS,
           inject: () => ({
@@ -116,7 +116,7 @@ export function apply(ctx: ClientContext) {
       scope.slots.register(
         {
           name: 'conversation.input.overlay',
-          id: 'prompt-optimizer-card',
+          id: 'prompt-architect-card',
           order: 10,
           locale: NS,
           inject: () => ({
@@ -142,6 +142,7 @@ export function apply(ctx: ClientContext) {
       apiKey: merged.apiKey.trim(),
       model: merged.model,
       useSessionModel: merged.useSessionModel,
+      intensity: merged.intensity,
     };
     try {
       const saved = await rpcConfig('set', {
@@ -150,6 +151,7 @@ export function apply(ctx: ClientContext) {
           apiKey: written.apiKey,
           model: written.model,
           useSessionModel: written.useSessionModel,
+          intensity: written.intensity,
         },
       });
       configMirror = mergeConfig(saved as Partial<PromptConfig> | undefined);
@@ -165,6 +167,7 @@ export function apply(ctx: ClientContext) {
           apiKey: DEFAULTS.apiKey,
           model: DEFAULTS.model,
           useSessionModel: true,
+          intensity: DEFAULTS.intensity,
         },
       });
       configMirror = mergeConfig(saved as Partial<PromptConfig> | undefined);
@@ -178,7 +181,7 @@ export function apply(ctx: ClientContext) {
       scope.slots.register(
         {
           name: 'settings.general.item',
-          id: 'prompt-optimizer-settings',
+          id: 'prompt-architect-settings',
           order: 30,
           locale: NS,
           store: settingsStore,
@@ -210,18 +213,24 @@ export function apply(ctx: ClientContext) {
     );
   });
 
-  // 7. 快捷键：Alt+O（焦点在输入控件内时等效点击优化按钮）
-  const onKeydown = (e: KeyboardEvent) => {
-    if (!e.altKey || e.code !== 'KeyO') return;
-    const el = document.activeElement;
-    const inInput =
-      el instanceof HTMLTextAreaElement ||
-      (el instanceof HTMLElement && (el.isContentEditable || el.closest('[data-composer-input]') !== null));
-    if (!inInput) return;
-    e.preventDefault();
-    emitOptimizeRequest();
-  };
-  document.addEventListener('keydown', onKeydown);
+  // 7. 快捷键：Alt+O（焦点在输入控件内时等效点击优化按钮）。
+  // 用 ctx.effect 包裹并返回清理函数：旧版直接 document.addEventListener 且永不移除，
+  // 插件热重载/卸载后监听器累积，Alt+O 会广播给多个按钮实例（虽然并发把关兜住，但属于泄漏）。
+  ctx.effect(() => {
+    const onKeydown = (e: KeyboardEvent) => {
+      if (e.repeat) return; // 按住 Alt+O 不连发
+      if (!e.altKey || e.code !== 'KeyO') return;
+      const el = document.activeElement;
+      const inInput =
+        el instanceof HTMLTextAreaElement ||
+        (el instanceof HTMLElement && (el.isContentEditable || el.closest('[data-composer-input]') !== null));
+      if (!inInput) return;
+      e.preventDefault();
+      emitOptimizeRequest();
+    };
+    document.addEventListener('keydown', onKeydown);
+    return () => document.removeEventListener('keydown', onKeydown);
+  }, 'prompt-architect: alt+o shortcut');
 }
 
 // 引用守卫：避免 tree-shake 掉类型（仅文档性；无运行时行为）

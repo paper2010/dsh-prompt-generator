@@ -8,10 +8,10 @@
  *   optimize.stream    → SSE 真流式：llm.stream 每个 text-delta 即时推送（逐 token）
  *   optimize.start     → 后台流式累积（降级方案）
  *   optimize.poll      → 取 { done, text }（降级方案）
- * client 经 HTTP SSE（/dsh-prompt-optimizer/api/optimize.stream）逐 token 呈现。
+ * client 经 HTTP SSE（/dsh-prompt-architect/api/optimize.stream）逐 token 呈现。
  */
 
-import type { Lang } from './optimizer.js';
+import { OptimizeError, type Lang } from './optimizer.js';
 
 /** 自有通道的最小面（注入式，便于单测）。 */
 export interface HostRpc {
@@ -24,14 +24,14 @@ export interface HostRpc {
 
 /**
  * HTTP JSON API 通道（dsh-elf 方式）：渲染进程页面由宿主 webServer 提供，相对路径 fetch
- * 直达 `/dsh-prompt-optimizer/api/<method>`，完全绕开 connection.rpc.call——
+ * 直达 `/dsh-prompt-architect/api/<method>`，完全绕开 connection.rpc.call——
  * desktop 的 rpc.call 在同一流程第二次调用会挂死（实测 sessionModel 成功、第二次永不达）。
  */
 export async function callHost<R = unknown>(
   method: string,
   args: Record<string, unknown>,
 ): Promise<{ ok: boolean; value?: R; error?: { code?: string; details?: unknown } }> {
-  const response = await fetch(`/dsh-prompt-optimizer/api/${encodeURIComponent(method)}`, {
+  const response = await fetch(`/dsh-prompt-architect/api/${encodeURIComponent(method)}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(args),
@@ -93,20 +93,26 @@ function callRpc<R = never>(
   ) as Promise<{ ok: true; value: R } | { ok: false; error?: { code?: string; details?: unknown } }>;
 }
 
-/** 取当前会话/agent 默认模型（零配置）。不可得时返回 null。 */
+/** 取当前会话/agent 默认模型（零配置）。不可得时返回 null。
+ *  契约要求「任何失败都返回 null 由调用方回退」——旧版无 try/catch，
+ *  fetch 失败/响应非 JSON 会直接 reject，违反自身注释承诺。 */
 export async function resolveHostSessionModel(
   rpc: HostRpc,
   rpcTimeoutMs = DEFAULT_RPC_TIMEOUT_MS,
 ): Promise<HostSessionInfo | null> {
-  const res = await callRpc(rpc, 'sessionModel', {}, rpcTimeoutMs);
-  if (!res.ok || !res.value || typeof res.value !== 'object') return null;
-  const v = res.value as { provider?: unknown; model?: unknown };
-  if (typeof v.provider !== 'string' || typeof v.model !== 'string') return null;
-  const info: HostSessionInfo = { provider: v.provider, model: v.model };
-  if (typeof (res.value as { reasoningEffort?: unknown }).reasoningEffort === 'string') {
-    info.reasoningEffort = (res.value as { reasoningEffort?: string }).reasoningEffort;
+  try {
+    const res = await callRpc(rpc, 'sessionModel', {}, rpcTimeoutMs);
+    if (!res.ok || !res.value || typeof res.value !== 'object') return null;
+    const v = res.value as { provider?: unknown; model?: unknown };
+    if (typeof v.provider !== 'string' || typeof v.model !== 'string') return null;
+    const info: HostSessionInfo = { provider: v.provider, model: v.model };
+    if (typeof (res.value as { reasoningEffort?: unknown }).reasoningEffort === 'string') {
+      info.reasoningEffort = (res.value as { reasoningEffort?: string }).reasoningEffort;
+    }
+    return info;
+  } catch {
+    return null;
   }
-  return info;
 }
 
 /** 文本增量（字符前缀比较；轮询近似流式用）。 */
@@ -134,7 +140,9 @@ export interface StreamHostOptimizeOptions {
   timeoutMs?: number;
 }
 
-/** 解析 SSE 帧：返回 { event, data }（\n\n 分帧）。 */
+/** 解析 SSE 帧：返回 { event, data }（\n\n 分帧）。
+ *  data 按 SSE 规范只剥冒号后的一个前导空格——绝不 trim：旧版 trim 会吃掉
+ *  token 首尾空白，英文流式结果单词粘连（"The goal" → "Thegoal"，实测 bug）。 */
 async function readSseFrames(
   response: Response,
   onFrame: (event: string, data: string) => void,
@@ -156,7 +164,11 @@ async function readSseFrames(
       let data = '';
       for (const line of frame.split('\n')) {
         if (line.startsWith('event:')) event = line.slice(6).trim();
-        else if (line.startsWith('data:')) data = line.slice(5).trim();
+        else if (line.startsWith('data:')) {
+          let d = line.slice(5);
+          if (d.startsWith(' ')) d = d.slice(1);
+          data = d;
+        }
       }
       onFrame(event, data);
     }
@@ -182,7 +194,7 @@ export async function streamHostOptimize(opts: StreamHostOptimizeOptions): Promi
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let out = '';
   try {
-    const response = await fetch('/dsh-prompt-optimizer/api/optimize.stream', {
+    const response = await fetch('/dsh-prompt-architect/api/optimize.stream', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -197,18 +209,48 @@ export async function streamHostOptimize(opts: StreamHostOptimizeOptions): Promi
     if (!response.ok) throw new Error(`http-${response.status}`);
     onStep?.('poll');
     let reasoning = '';
+    // 宿主侧失败必须浮出：旧版直接忽略 error 帧，失败被当成功、空/半截结果照常 show
+    let streamError: { kind: 'error' | 'truncated'; message: string } | null = null;
     await readSseFrames(response, (event, data) => {
+      if (event === 'error') {
+        let kind: 'error' | 'truncated' = 'error';
+        let message = data;
+        try {
+          const parsed = JSON.parse(data) as { kind?: unknown; m?: unknown };
+          if (typeof parsed.m === 'string' && parsed.m) message = parsed.m;
+          if (parsed.kind === 'truncated') kind = 'truncated';
+        } catch {
+          // 非 JSON 载荷：按原文本当错误消息
+        }
+        streamError = { kind, message };
+        return;
+      }
       if (data === '{}' || data === '[DONE]') return;
-      if (event === 'reasoning') {
-        reasoning += data;
-        onReasoning?.(reasoning);
-      } else if (event === 'delta') {
-        out += data;
-        onDelta(out);
+      if (event === 'reasoning' || event === 'delta') {
+        // 帧载荷为 JSON（{"t": ...}），空格/换行/字面反斜杠全部无损；
+        // 解析失败时回退裸文本（容忍旧格式帧）
+        let piece = data;
+        try {
+          const parsed = JSON.parse(data) as { t?: unknown };
+          if (typeof parsed.t === 'string') piece = parsed.t;
+        } catch {
+          // 裸文本帧
+        }
+        if (event === 'reasoning') {
+          reasoning += piece;
+          onReasoning?.(reasoning);
+        } else {
+          out += piece;
+          onDelta(out);
+        }
       }
     });
-    // 服务端始终以 event:done 收尾，无显式错误帧即成功
     if (signal.aborted) throw new Error('aborted');
+    if (streamError) {
+      throw streamError.kind === 'truncated'
+        ? new OptimizeError('truncated', streamError.message)
+        : new OptimizeError('bad-response', streamError.message);
+    }
     return out;
   } finally {
     clearTimeout(timeout);

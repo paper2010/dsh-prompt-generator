@@ -305,7 +305,8 @@ export type OptimizeErrorKind =
   | 'network'
   | 'cors'
   | 'bad-response'
-  | 'empty';
+  | 'empty'
+  | 'truncated';
 
 export class OptimizeError extends Error {
   constructor(
@@ -326,6 +327,34 @@ function extractChoiceContent(payload: unknown): string | null {
   const first = choices[0] as { message?: { content?: unknown } };
   const content = first?.message?.content;
   return typeof content === 'string' ? content : null;
+}
+
+/** 非流式响应的 finish_reason（'length' = 被 max_tokens 截断）。 */
+function extractFinishReason(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const choices = (payload as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || choices.length === 0) return null;
+  const fr = (choices[0] as { finish_reason?: unknown }).finish_reason;
+  return typeof fr === 'string' ? fr : null;
+}
+
+/** 流式 SSE 行里的 finish_reason；非 data 行 / 无该字段 → null。纯函数，便于单测。 */
+export function extractSseFinishReason(line: string): string | null {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('data:')) return null;
+  const data = trimmed.slice('data:'.length).trim();
+  if (data === '[DONE]') return null;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(data);
+  } catch {
+    return null;
+  }
+  if (typeof payload !== 'object' || payload === null) return null;
+  const choices = (payload as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || choices.length === 0) return null;
+  const fr = (choices[0] as { finish_reason?: unknown }).finish_reason;
+  return typeof fr === 'string' ? fr : null;
 }
 
 export function toErrorKind(e: unknown): OptimizeError {
@@ -384,6 +413,11 @@ export async function optimize(opts: {
   }
   const content = extractChoiceContent(payload);
   if (!content || !content.trim()) throw new OptimizeError('empty', 'empty completion');
+  // 截断检测：被 max_tokens 切断的结果是半截产物，静默返回会违反 R7 信息守恒——
+  // 明确报错，让用户缩短草稿后重试，而不是拿到一份看起来完整的残次品
+  if (extractFinishReason(payload) === 'length') {
+    throw new OptimizeError('truncated', 'output truncated by max_tokens');
+  }
   return extractResult(content);
 }
 
@@ -464,6 +498,7 @@ export async function optimizeStream(opts: {
   const decoder = new TextDecoder();
   let buffer = '';
   let full = '';
+  let truncated = false;
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -477,6 +512,7 @@ export async function optimizeStream(opts: {
           onEvent?.(delta);
           if (delta.kind === 'content') full += delta.text;
         }
+        if (extractSseFinishReason(line) === 'length') truncated = true;
       }
     }
   } finally {
@@ -493,8 +529,10 @@ export async function optimizeStream(opts: {
       onEvent?.(delta);
       if (delta.kind === 'content') full += delta.text;
     }
+    if (extractSseFinishReason(buffer) === 'length') truncated = true;
   }
 
+  if (truncated) throw new OptimizeError('truncated', 'output truncated by max_tokens');
   const content = extractResult(full);
   if (!content.trim()) throw new OptimizeError('empty', 'empty completion');
   return content;

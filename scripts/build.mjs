@@ -1,5 +1,5 @@
 // 本项目由 AI 辅助优化完成（提示词内核、测试与文档），发布前经人工审阅。
-/** dsh-prompt-optimizer 构建脚本 — esbuild 打包为官方 client.js 格式 */
+/** dsh-prompt-architect 构建脚本 — esbuild 打包为官方 client.js 格式 */
 
 import * as esbuild from 'esbuild';
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
@@ -39,9 +39,9 @@ await esbuild.build({
 const bundle = readFileSync(outRaw, 'utf8');
 
 // 运行时约束（Task 6 实证）：bundle 的 load id 必须等于安装包名（图行 id = entry.options.name），
-// 否则 arrive() 抛出 "bundle loaded without registering <id>"。包名即 dsh-prompt-optimizer。
+// 否则 arrive() 抛出 "bundle loaded without registering <id>"。包名即 dsh-prompt-architect。
 const wrapped = `window.__ModuleLoader__.load({
-  id: "dsh-prompt-optimizer",
+  id: "dsh-prompt-architect",
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;

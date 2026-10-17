@@ -36,6 +36,13 @@ let activeController: AbortController | null = null;
 /** 在途请求的发起会话（并发把关按会话：同会话防抖；异会话让路） */
 let activeSessionId: string | null = null;
 
+/**
+ * 宿主通道整体超时：对齐 streamHostOptimize 的内部默认 120s。
+ * v4 系模型先输出长段 reasoning，60s（fetch 通道的 REQUEST_TIMEOUT_MS）经常不够——
+ * 旧版外层 60s 计时器会提前 abort 掉本来 120s 内能完成的宿主流式。
+ */
+const HOST_TIMEOUT_MS = 120_000;
+
 /** 关闭预览卡（并中止在途请求） */
 export function closePreview(): void {
   if (activeController !== null) {
@@ -91,17 +98,18 @@ export async function runOptimize(ctx: {
   const controller = new AbortController();
   activeController = controller; // 注册给 closePreview()，供卡片关闭时取消在途请求
   activeSessionId = sessionId;
+  const useHost = config.useSessionModel && !!ctx.host;
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
     controller.abort();
-  }, REQUEST_TIMEOUT_MS);
+  }, useHost ? HOST_TIMEOUT_MS : REQUEST_TIMEOUT_MS);
 
   try {
     // 会话模型模式（默认）：宿主临时对话通道 —— 零配置，无需 checkConfig
-    if (config.useSessionModel && ctx.host) {
+    if (useHost) {
       await streamHostOptimize({
-        rpc: ctx.host.rpc,
+        rpc: ctx.host!.rpc,
         text: draft,
         system,
         signal: controller.signal,
@@ -113,6 +121,11 @@ export async function runOptimize(ctx: {
         (finalText) => {
           // SSE 已逐 token 流过 draft；收尾仅切到结果态（并剥离可能的前缀引导语，保证可一键替换）
           const result = stripLeadIn(finalText);
+          if (!result.trim()) {
+            // 宿主侧空产出（通道异常结束等）：按失败处理，绝不能把空串替换进草稿
+            dispatchPreview({ type: 'fail', kind: 'empty' });
+            return;
+          }
           // 挂起本次「草稿 → 结果」对，等用户点采纳/放弃后再决定进正样本还是负样本
           setPending(sessionId, draft, result);
           dispatchPreview({ type: 'show', result });

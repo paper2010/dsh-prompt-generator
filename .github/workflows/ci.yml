@@ -29,4 +29,4 @@ jobs:
 
       - name: Bundle must register the package name as load id
         run: |
-          grep -q 'id: "dsh-prompt-optimizer"' dist/client.js
+          grep -q 'id: "dsh-prompt-architect"' dist/client.js
