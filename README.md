@@ -55,17 +55,17 @@ Install by repository identity. The package name is `dsh-prompt-optimize`, so it
 from the upstream `dsh-prompt-optimizer` in dsh's marketplace and installed list:
 
 ```sh
-dsh plugin --profile desktop add github:paper2010/dsh-prompt-optimizer
+dsh plugin --profile desktop add github:paper2010/dsh-prompt-optimize
 ```
 
 For a web profile, use `--profile web`. Restart DSH (quit fully and reopen), then a ✨ button appears to the right of the composer.
 
-> ℹ️ Not published to npm — use the `github:` install above. The package was originally named `dsh-prompt-optimizer`, identical to upstream and easy to mistake for the official build; since **2.3.0** it is `dsh-prompt-optimize` (2.2.0 briefly used `dsh-prompt-architect`). The GitHub repository name is unchanged.
+> ℹ️ Not published to npm — use the `github:` install above.
 
 ### From source (development)
 
 ```sh
-git clone https://github.com/paper2010/dsh-prompt-optimizer.git && cd dsh-prompt-optimizer
+git clone https://github.com/paper2010/dsh-prompt-optimize.git && cd dsh-prompt-optimize
 npm install           # esbuild only — zero runtime dependencies
 npm run build         # produces dist/client.js
 npm test              # 66 unit tests + 37 assembly smoke checks
@@ -77,7 +77,7 @@ Or install by hand: in the target profile's `package.json` (e.g. `~/.dsh/profile
 ```jsonc
 {
   "dependencies": {
-    "dsh-prompt-optimize": "link:/absolute/path/to/dsh-prompt-optimizer"
+    "dsh-prompt-optimize": "link:/absolute/path/to/dsh-prompt-optimize"
     // ...
   },
   "dsh": {
@@ -225,7 +225,6 @@ assets/               Screenshot
 - **Why this is permitted**: MIT allows use, copy, modification, merging, publication, distribution and sublicensing, on the condition that the copyright notice and permission text are retained. The [LICENSE](LICENSE) here keeps `Copyright (c) 2026 winditer` and adds a notice for the modifications, so no separate permission is required.
 - **Relationship to the upstream author**: **none — no affiliation, no endorsement.** The upstream author was **not contacted** before publication. This repository does not represent upstream's position, and upstream bears no responsibility for it.
 - **If the author objects**: open an issue here and it will be handled at their request — rename, add a more prominent disclaimer, or take the repository down.
-- **Naming**: the package deliberately does not reuse upstream's `dsh-prompt-optimizer` name, precisely so it is not mistaken for the official build. The repository URL keeps the old name only because renaming the repo would break existing references for no benefit.
 
 > The above is a plain reading of the MIT terms, not legal advice.
 

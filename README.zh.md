@@ -53,7 +53,7 @@ DSH 输入框 prompt 优化插件：无需选中任何内容，直接输入草�
 按仓库身份安装。包名是 `dsh-prompt-optimize`，与上游 `dsh-prompt-optimizer` 在 dsh 的市场与已安装列表里可以区分开：
 
 ```sh
-dsh plugin --profile desktop add github:paper2010/dsh-prompt-optimizer
+dsh plugin --profile desktop add github:paper2010/dsh-prompt-optimize
 ```
 
 Web profile 用 `--profile web`。安装后重启 DSH（完全退出再打开），输入栏右侧会出现 ✨ 按钮。
@@ -61,15 +61,15 @@ Web profile 用 `--profile web`。安装后重启 DSH（完全退出再打开）
 ### 从源码安装
 
 ```sh
-git clone https://github.com/paper2010/dsh-prompt-optimizer.git
-cd dsh-prompt-optimizer
+git clone https://github.com/paper2010/dsh-prompt-optimize.git
+cd dsh-prompt-optimize
 npm install          # 只装 esbuild（构建用，运行时零依赖）
 npm run build        # 重新产出 dist/client.js
 npm test             # 66 项单测 + 37 项装配冒烟
 dsh plugin --profile desktop add .
 ```
 
-> ℹ️ 本包未发布到 npm，请用上面的 `github:` 方式安装。包名原为 `dsh-prompt-optimizer`，与上游同名、容易让人误认作官方版本，自 **2.3.0** 起定名 `dsh-prompt-optimize`（2.2.0 曾短暂使用 `dsh-prompt-architect`）；GitHub 仓库名保持不变。
+> ℹ️ 本包未发布到 npm，请用上面的 `github:` 方式安装。
 
 ### 源码开发方式
 
@@ -85,7 +85,7 @@ dsh plugin --profile desktop add .    # 按包名把工作区 link 进 profile
 ```jsonc
 {
   "dependencies": {
-    "dsh-prompt-optimize": "link:/absolute/path/to/dsh-prompt-optimizer"
+    "dsh-prompt-optimize": "link:/absolute/path/to/dsh-prompt-optimize"
     // ...
   },
   "dsh": {
@@ -233,7 +233,6 @@ assets/               截图
 - **授权依据**：MIT 允许使用、复制、修改、合并、发布、再分发与再许可，条件是保留版权声明与许可文本。本仓库的 [LICENSE](LICENSE) 保留 `Copyright (c) 2026 winditer`，并追加修改声明，因此无需另行授权。
 - **与上游作者的关系**：**无隶属、无背书**。发布前**未与其沟通**本仓库的存在；本仓库不代表上游立场，上游也不对本仓库的任何问题负责。
 - **如有异议**：若原作者认为命名或改动不妥，请在本仓库开 issue，我会按对方意愿处理（改名、加更醒目的声明，或直接下架）。
-- **命名**：包名刻意不用上游的 `dsh-prompt-optimizer`，就是为了避免被误认为官方版本；仓库地址保留旧名，仅因重命名仓库对其他引用无收益。
 
 > 以上是对 MIT 条款的常规理解，不构成法律意见。
 

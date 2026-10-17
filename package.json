@@ -9,11 +9,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paper2010/dsh-prompt-optimizer.git"
+    "url": "git+https://github.com/paper2010/dsh-prompt-optimize.git"
   },
-  "homepage": "https://github.com/paper2010/dsh-prompt-optimizer#readme",
+  "homepage": "https://github.com/paper2010/dsh-prompt-optimize#readme",
   "bugs": {
-    "url": "https://github.com/paper2010/dsh-prompt-optimizer/issues"
+    "url": "https://github.com/paper2010/dsh-prompt-optimize/issues"
   },
   "type": "module",
   "exports": {
