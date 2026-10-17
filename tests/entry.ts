@@ -1042,6 +1042,28 @@ async function runPreviewBusTests(check: (name: string, fn: () => void | Promise
   });
 }
 
+/**
+ * 组件静态守卫：React hooks 必须全部位于提前 return 之前。
+ *
+ * 为什么需要这条静态检查：v0.3.0 的 PreviewCard 把 `useRef(hasCopiedRef)` 写在
+ * `if (status === 'idle') return null;` 之后 —— idle 首帧 7 个 hook，进入优化态后
+ * 第 8 个 hook 出现，React 抛 #310（Rendered more hooks than during the previous
+ * render），overlay 槽位条目被错误边界移除。纯函数单测覆盖不到，只能在源码层拦住。
+ */
+async function runComponentGuardTests(check: (name: string, fn: () => void | Promise<void>) => void) {
+  await check('PreviewCard: hooks 全部早于提前 return（防 React #310 条件 hook）', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const source = readFileSync(join(process.cwd(), 'src/PreviewCard.tsx'), 'utf8');
+    const earlyReturn = source.search(/\n\s*if \([^\n]*\) return null;/);
+    assert.ok(earlyReturn > 0, 'PreviewCard 应保留「切会话不跟随」的提前 return');
+    const tail = source.slice(earlyReturn);
+    for (const hook of ['useState(', 'useRef(', 'useEffect(', 'useMemo(', 'useCallback(', 'useReducer(']) {
+      assert.ok(!tail.includes(hook), `条件 hook：${hook} 出现在提前 return 之后`);
+    }
+  });
+}
+
 export async function run(): Promise<boolean> {
   const results: string[] = [];
   const failures: string[] = [];
@@ -1086,6 +1108,7 @@ export async function run(): Promise<boolean> {
   await runOptimizeStoreTests(check);
   await runSettingsStoreTests(check);
   await runPreviewBusTests(check);
+  await runComponentGuardTests(check);
 
   for (const r of results) console.log(r);
   if (failures.length > 0) {

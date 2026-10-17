@@ -66,6 +66,28 @@ function injectCss() {
   font-size: 12px;
   margin-left: 4px;
 }
+/* 推理过程（v4 系模型先输出长段 reasoning）：等待期间必须可见，
+   且与正文分区显示——否则用户只看到沙漏，误判为卡死 */
+.dsh-po-reason {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 8px;
+  border-left: 2px solid var(--dsw-alias-border-l2, rgba(128, 128, 128, 0.35));
+}
+.dsh-po-reason-head {
+  font-size: 11px;
+  color: var(--dsw-alias-text-secondary, #8c93a1);
+}
+.dsh-po-reason-body {
+  max-height: 110px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-text-secondary, #8c93a1);
+}
 .dsh-po-card-err-detail {
   margin-top: 4px;
   color: var(--dsw-alias-text-secondary, #8c93a1);
@@ -134,6 +156,17 @@ export function PreviewCard(props: PreviewCardProps) {
   const { status, result, errorKind } = state;
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<number | null>(null);
+  /**
+   * ⚠️ 所有 hooks 必须在此处集中声明，早于下方任何 `return null`。
+   * 实测故障（v0.3.0 及更早）：hasCopiedRef 原先声明在「status === 'idle' 就 return null」
+   * 之后 —— idle 首帧只跑 7 个 hook，一旦开始优化走到第 8 个 hook，React 抛 #310
+   * （Rendered more hooks than during the previous render），整个 overlay 槽位条目被
+   * 错误边界移除：用户看到的是「点一下按钮变沙漏、上方永远不出现卡片/思考过程」。
+   */
+  const hasCopiedRef = useRef(false);
+
+  // 宿主通道步骤提示：把「正在优化」细化到当前步骤，卡在哪一步一眼可见
+  const stepHint = state.step ? t(`card.step.${state.step}`) : t('card.optimizing');
 
   // 预览窗口绑定发起会话：切换到别的会话时不跟随显示（切回发起会话恢复）
   if (status !== 'idle' && state.sessionId !== null) {
@@ -172,7 +205,6 @@ export function PreviewCard(props: PreviewCardProps) {
     closePreview();
   };
 
-  const hasCopiedRef = useRef(false);
   const copy = async () => {
     if (!navigator.clipboard) return; // 非安全上下文（http 等）：不翻转 copied，保持可重试
     try {
@@ -215,21 +247,19 @@ export function PreviewCard(props: PreviewCardProps) {
       )}
 
       {status === 'optimizing' && (
-        <div className="dsh-po-card-body">
-          {state.reasoning && !state.draft ? (
-            <span
-              style={{
-                whiteSpace: 'pre-wrap',
-                color: 'var(--dsw-alias-text-secondary, #8c93a1)',
-                fontSize: '12px',
-              }}
-            >
-              {state.reasoning}
-            </span>
+        <>
+          {/* 推理过程单独成块：模型先产 reasoning 再产正文，等待期不能让用户只看到沙漏 */}
+          {state.reasoning ? (
+            <div className="dsh-po-reason">
+              <div className="dsh-po-reason-head">{t('card.reasoning')}</div>
+              <div className="dsh-po-reason-body">{state.reasoning}</div>
+            </div>
           ) : null}
-          {state.draft ? <span style={{ whiteSpace: 'pre-wrap' }}>{state.draft}</span> : null}
-          {!state.draft && !state.reasoning ? t('card.optimizing') : null}
-        </div>
+          <div className="dsh-po-card-body">
+            {state.draft ? <span style={{ whiteSpace: 'pre-wrap' }}>{state.draft}</span> : null}
+            {!state.draft ? <span className="dsh-po-card-step">{stepHint}</span> : null}
+          </div>
+        </>
       )}
 
       {status === 'preview' && (
