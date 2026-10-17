@@ -1,3 +1,4 @@
+// 本项目由 AI 辅助优化完成（提示词内核、测试与文档），发布前经人工审阅。
 /** Prompt 优化核心：配置校验、OpenAI 兼容调用、结果提取 —— 纯函数，零 DSH 依赖 */
 
 export interface PromptConfig {

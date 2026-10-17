@@ -8,9 +8,11 @@ English | [中文](README.zh.md)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%5E22.19%20%7C%7C%20%3E%3D24-339933.svg)](package.json)
-[![dsh](https://img.shields.io/badge/dsh-plugin-2.1.0-2f6bff.svg)](cordis.patch.yml)
+[![dsh](https://img.shields.io/badge/dsh-plugin-2.1.1-2f6bff.svg)](cordis.patch.yml)
 
 > **A derivative of [winditer/dsh-prompt-optimizer](https://github.com/winditer/dsh-prompt-optimizer) (MIT)** with the prompt kernel rewritten: from "polisher" to "prompt architect + information-density adaptive", plus memory and self-learning. See the 2.1.0 entry in [CHANGELOG.md](CHANGELOG.md) for the diff.
+
+> 🤖 **AI-assisted**: the prompt-kernel rewrite, tests and documentation in this project were produced with AI assistance and human review before release. See [AI assistance](#-ai-assistance).
 
 One-click prompt **rebuild** for the DSH composer: select nothing, just type a draft and press **✨** (or `Alt+O`) — the plugin rewrites it into a prompt that can actually drive a model. How much it changes is **set by the draft's information density**: a detailed draft gets condensed (the result may be shorter than the input), a thin draft gets targeted completion — never a fixed expansion ratio. **Zero-config by default**: it follows the current session's model through the harness host services, so no API key is needed. A self-configured OpenAI-compatible endpoint is supported as an alternative.
 
@@ -94,9 +96,34 @@ Remove `dsh-prompt-optimizer` from the profile's `dependencies` and `dsh.profile
 ## Usage
 
 - Type a draft in the composer, click **✨** (or `Alt+O`) — the preview card appears over the composer
-- While optimizing: reasoning text scrolls in secondary color first, then the polished prompt streams in token by token
+- While optimizing: reasoning text scrolls in secondary color first, then the rewritten prompt streams in token by token
 - When done: **替换草稿** writes the result into the composer in place · **复制** copies it · **重新优化** re-runs · **放弃** dismisses
 - The preview belongs to the session where you started it: switching sessions hides it, switching back restores it
+
+## Example
+
+A generic example, unrelated to this plugin itself, showing what it actually changes.
+
+**Background**: the user needs to schedule an internal event, but only has a rough idea — the date range, budget, attendees and deliverable are all still in their head.
+
+**Input** (draft):
+
+```
+Sort out the product launch thing next week sometime, everyone needs to be there, keep it under budget
+```
+
+**Expected result**: the plugin rewrites it into an instruction you could send as-is, filling in at least these four dimensions —
+
+| Dimension | After the rewrite |
+|---|---|
+| Task goal | Fix the date, venue, attendee list and budget plan for the launch event |
+| Scope | Internal planning and scheduling only; no external marketing assets or paid channels |
+| Constraints | Within next week; an explicit budget ceiling; key roles must attend |
+| Expected output | A schedule table with date, venue, attendees and budget, ready to review |
+
+Facts the draft never supplied — the exact amount, the specific date — are not invented. They become placeholders such as `<TO FILL: budget ceiling>` and are collected in a closing "Open Questions" list.
+
+This draft carries only one or two sentences of intent, so it is **sparse**: the plugin mostly adds. Had the same request already stated those four dimensions, it would do the opposite — cut repetition and compress, and the result could well be shorter than the input.
 
 ## Configuration
 
@@ -179,6 +206,16 @@ assets/               Screenshot
   minimumReleaseAgeExclude:
     - dsh-prompt-optimizer@2.0.0
   ```
+
+## 🤖 AI assistance
+
+- **Where AI contributed**: the prompt kernel (`src/optimizer.ts`), memory and self-learning (`src/memory.ts`), tests (`tests/`), build scripts, and this documentation were written and refined with AI assistance.
+- **Where humans were accountable**: requirements and behavioural boundaries were set by a human; every change was human-reviewed, and tests had to pass locally and in CI before release.
+- **Where the label appears (identical wording throughout)**:
+  - The notice at the top of this README and this section
+  - Source-file header comments: `src/index.ts`, `src/optimizer.ts`, `src/memory.ts`, `lib/index.js`, `scripts/build.mjs`
+  - A permanent line on the plugin's settings page: locale key `settings.aiNotice`
+- **Canonical wording**: "AI-assisted" in English, "AI 辅助优化" in Chinese. Terms like "AI-generated" or "fully automatic" are deliberately avoided — they would overstate the AI's role and hide the human review step.
 
 ## License
 

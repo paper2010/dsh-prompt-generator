@@ -1,6 +1,6 @@
 {
   "name": "dsh-prompt-optimizer",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "DSH 输入框 prompt 优化插件：一键把草稿重写为能直接驱动模型的高质量 prompt（改写幅度随草稿信息密度自适应，不套固定扩写倍数）。默认使用当前会话模型（零配置，SSE 流式 + 推理过程实时可见），也支持自配 OpenAI 兼容 API。",
   "license": "MIT",
   "author": "paper2010 <lizonghui2010@qq.com>",

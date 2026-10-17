@@ -2,6 +2,20 @@
 
 本仓库从 `winditer/dsh-prompt-optimizer@2.0.3` 衍生，以下只记录衍生后的改动。
 
+> 本项目由 AI 辅助优化完成，标注位置与统一措辞见 README 的「AI 辅助说明」。
+
+## 2.1.1
+
+### 标注（AI 辅助）
+
+- 全项目统一「AI 辅助优化」标注，三处一致：README 页首提示 + 独立章节（写明 AI 参与范围、人工把关环节、全部标注位置与统一措辞）；源文件头注释（`src/index.ts`、`src/optimizer.ts`、`src/memory.ts`、`lib/index.js`、`scripts/build.mjs`）；插件设置页常驻提示文案（`settings.aiNotice`，中英文各一条）。
+- 英文侧统一用「AI-assisted」，不使用 "AI-generated" / "fully automatic" 这类夸大或掩盖人工审阅的说法。
+
+### 文档
+
+- README 新增「使用示例」：一个与本项目无关的通用示例（内部活动排期），含背景、输入草稿与预期结果对照表，并说明该草稿属「稀疏型」、走补齐路径。
+- 修正设置项描述里的旧措辞（「润色接口」→「重写接口」）。
+
 ## 2.1.0
 
 ### 提示词内核重写（行为变化）

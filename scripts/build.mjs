@@ -1,3 +1,4 @@
+// 本项目由 AI 辅助优化完成（提示词内核、测试与文档），发布前经人工审阅。
 /** dsh-prompt-optimizer 构建脚本 — esbuild 打包为官方 client.js 格式 */
 
 import * as esbuild from 'esbuild';

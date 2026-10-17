@@ -178,6 +178,9 @@ export function SettingsRow(props: SettingsRowProps) {
           ))}
       </div>
 
+      {/* AI 辅助标注：始终可见，与 README / 源码头注释使用同一措辞 */}
+      <div className="optiSettingsHint">{t('settings.aiNotice')}</div>
+
       {expanded && (
         <div className="optiSettingsForm">
           {getHostStatus && (
