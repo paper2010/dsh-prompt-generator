@@ -8,9 +8,9 @@ English | [中文](README.zh.md)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%5E22.19%20%7C%7C%20%3E%3D24-339933.svg)](package.json)
-[![dsh](https://img.shields.io/badge/dsh-plugin-2.3.0-2f6bff.svg)](cordis.patch.yml)
+[![dsh](https://img.shields.io/badge/dsh-plugin-0.3.0-2f6bff.svg)](cordis.patch.yml)
 
-> **A derivative of [winditer/dsh-prompt-optimizer](https://github.com/winditer/dsh-prompt-optimizer) (MIT)** with the prompt kernel rewritten: from "polisher" to "prompt architect + information-density adaptive", plus memory and self-learning. See the 2.1.0 entry in [CHANGELOG.md](CHANGELOG.md) for the diff.
+> **A derivative of [winditer/dsh-prompt-optimizer](https://github.com/winditer/dsh-prompt-optimizer) (MIT)** with the prompt kernel rewritten: from "polisher" to "prompt architect + information-density adaptive", plus memory and self-learning. See the 0.1.0 entry in [CHANGELOG.md](CHANGELOG.md) for the diff.
 
 > 🤖 **AI-assisted**: the prompt-kernel rewrite, tests and documentation in this project were produced with AI assistance and human review before release. See [AI assistance](#-ai-assistance).
 
@@ -206,7 +206,7 @@ assets/               Screenshot
 
   ```yaml
   minimumReleaseAgeExclude:
-    - dsh-prompt-optimize@2.3.0
+    - dsh-prompt-optimize@0.3.0
   ```
 
 ## 🤖 AI assistance
@@ -231,3 +231,8 @@ assets/               Screenshot
 ## License
 
 [MIT](LICENSE)
+
+## ⚠️ Status
+
+> **This project is still a test release (0.x) — please install and use with caution.**
+> Minor versions may change APIs, config paths and default behaviour without notice, and backward compatibility is not guaranteed. Read [CHANGELOG.md](CHANGELOG.md) before upgrading. Not recommended for production use.

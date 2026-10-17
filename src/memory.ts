@@ -39,7 +39,7 @@ export interface MemoryState {
 }
 
 const KEY = 'dsh-prompt-optimize.memory.v1';
-/** 改名前的存储键，按新到旧排列：2.2.0 曾叫 dsh-prompt-architect，更早叫 dsh-prompt-optimizer。
+/** 改名前的存储键，按新到旧排列：0.2.0 曾叫 dsh-prompt-architect，更早叫 dsh-prompt-optimizer。
  *  仅在一次性迁移时使用，迁完即删，避免用户丢掉已积累的偏好。 */
 const LEGACY_KEYS = ['dsh-prompt-architect.memory.v1', 'dsh-prompt-optimizer.memory.v1'];
 const MAX_ACCEPTED = 12;

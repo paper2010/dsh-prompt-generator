@@ -8,9 +8,9 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%5E22.19%20%7C%7C%20%3E%3D24-339933.svg)](package.json)
-[![dsh](https://img.shields.io/badge/dsh-plugin-2.3.0-2f6bff.svg)](cordis.patch.yml)
+[![dsh](https://img.shields.io/badge/dsh-plugin-0.3.0-2f6bff.svg)](cordis.patch.yml)
 
-> **本仓库是 [winditer/dsh-prompt-optimizer](https://github.com/winditer/dsh-prompt-optimizer) 的衍生版本（MIT）**，提示词内核已重写：从「润色器」改为「提示词架构师 + 信息密度自适应」，并加入记忆与自学习。差异见 [CHANGELOG.md](CHANGELOG.md) 的 2.1.0 条目。
+> **本仓库是 [winditer/dsh-prompt-optimizer](https://github.com/winditer/dsh-prompt-optimizer) 的衍生版本（MIT）**，提示词内核已重写：从「润色器」改为「提示词架构师 + 信息密度自适应」，并加入记忆与自学习。差异见 [CHANGELOG.md](CHANGELOG.md) 的 0.1.0 条目。
 
 > 🤖 **AI 辅助优化**：本项目的提示词内核重写、测试与文档由 AI 辅助完成，发布前经人工审阅。详见 [AI 辅助说明](#-ai-辅助说明)。
 
@@ -214,7 +214,7 @@ assets/               截图
 
   ```yaml
   minimumReleaseAgeExclude:
-    - dsh-prompt-optimize@2.3.0
+    - dsh-prompt-optimize@0.3.0
   ```
 
 ## 🤖 AI 辅助说明
@@ -239,3 +239,8 @@ assets/               截图
 ## 📄 License
 
 [MIT](LICENSE)
+
+## ⚠️ 当前状态
+
+> **本项目仍为测试版本（0.x），请谨慎安装使用。**
+> 小版本之间可能调整接口、配置路径与默认行为，且不保证向后兼容；升级前请先看 [CHANGELOG.md](CHANGELOG.md)。不建议用于生产环境。

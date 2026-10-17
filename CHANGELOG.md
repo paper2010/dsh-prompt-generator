@@ -4,22 +4,22 @@
 
 > 本项目由 AI 辅助优化完成，标注位置与统一措辞见 README 的「AI 辅助说明」。
 
-## 2.3.0
+## 0.3.0
 
 ### 改名（不兼容，最终定名）
 
-- 包名 `dsh-prompt-architect` → **`dsh-prompt-optimize`**。2.2.0 那次改名方向正确（脱离与上游同名的 `dsh-prompt-optimizer`），但新名字偏离了插件本来的定位，本次定为 `dsh-prompt-optimize`。
+- 包名 `dsh-prompt-architect` → **`dsh-prompt-optimize`**。0.2.0 那次改名方向正确（脱离与上游同名的 `dsh-prompt-optimizer`），但新名字偏离了插件本来的定位，本次定为 `dsh-prompt-optimize`。
 - 连带改动：`dist/client.js` 的 `__ModuleLoader__` load id、`cordis.patch.yml` 的 insert id（`prompt-optimize`）与 name、HTTP/RPC 前缀 `/dsh-prompt-optimize/api`、配置文件 `~/.dsh/prompt-optimize-config.json`、调试日志 `prompt-optimize-debug.log`、localStorage 键 `dsh-prompt-optimize.memory.v1`、组件 id 与 CSS 注入 id。
 - **升级注意**：包名再次变化，旧包同样不会被自动替换。需从 profile 的 `dependencies` 与 `dsh.profile.bundles` 移除旧条目（`dsh-prompt-optimizer` / `dsh-prompt-architect`），再安装本包，否则会出现多个 ✨ 按钮。
 - **数据迁移**：学习记录的旧键改为数组，按新到旧尝试 `dsh-prompt-architect.memory.v1` → `dsh-prompt-optimizer.memory.v1`，读到即写入新键并删除旧键。
 
-## 2.2.0
+## 0.2.0
 
 ### 功能变更
 
 - 设置页新增「优化强度」三档（轻改 / 标准 / 深度），可保存并生效。
 - 输出被长度上限截断时给出明确提示，不再返回不完整结果。
-- 包名与上游脱钩（不兼容）：load id、bundle 入口、HTTP 前缀、配置文件、localStorage 键与组件 id 同步更名，学习记录一次性迁移；最终定名见 2.3.0。
+- 包名与上游脱钩（不兼容）：load id、bundle 入口、HTTP 前缀、配置文件、localStorage 键与组件 id 同步更名，学习记录一次性迁移；最终定名见 0.3.0。
 
 ### 修复
 
@@ -42,7 +42,7 @@
 
 - README 新增「上游与授权」章节。
 
-## 2.1.1
+## 0.1.1
 
 ### 标注（AI 辅助）
 
@@ -54,7 +54,7 @@
 - README 新增「使用示例」：一个与本项目无关的通用示例（内部活动排期），含背景、输入草稿与预期结果对照表，并说明该草稿属「稀疏型」、走补齐路径。
 - 修正设置项描述里的旧措辞（「润色接口」→「重写接口」）。
 
-## 2.1.0
+## 0.1.0
 
 ### 提示词内核重写（行为变化）
 
