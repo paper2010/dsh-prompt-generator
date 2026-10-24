@@ -242,8 +242,3 @@ assets/               Screenshot
 ## License
 
 [MIT](LICENSE)
-
-## ⚠️ Status
-
-> **This project is still a test release (0.x) — please install and use with caution.**
-> Minor versions may change APIs, config paths and default behaviour without notice, and backward compatibility is not guaranteed. Read [CHANGELOG.md](CHANGELOG.md) before upgrading. Not recommended for production use.
