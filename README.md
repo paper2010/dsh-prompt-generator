@@ -94,6 +94,17 @@ then `pnpm install` inside the profile directory and restart DSH.
 
 Remove `dsh-prompt-optimize` from the profile's `dependencies` and `dsh.profile.bundles`, clean up the installed package, and delete the config file `~/.dsh/prompt-optimize-config.json` if you no longer need it.
 
+### Why the plugin list says "no new version"
+
+That is expected, not a fault. Two reasons stack up:
+
+1. This package is installed locally (`file:` / `link:` / `github:`). The dsh plugin manager decides updates by comparing against **`dist-tags.latest` on the npm registry**; a local directory has no registry entry, so any same-named package on npm wins the comparison.
+2. npm **does** already host an unrelated third-party package named `dsh-prompt-optimize@0.1.0` (published 2026-08-15). Your local copy is 0.3.x — newer than 0.1.0 — so the manager will always report "no update".
+
+Update through source instead: `git pull` → `node scripts/build.mjs` → copy `dist/` and `lib/` into the installed package inside the profile → fully quit and reopen DSH. Or reinstall with `dsh plugin add github:paper2010/dsh-prompt-optimize`.
+
+> ⚠️ Do not run `dsh plugin add dsh-prompt-optimize` — resolving by name installs that third-party 0.1.0 instead.
+
 ## Usage
 
 - Type a draft in the composer, click **✨** (or `Alt+O`) — the preview card appears over the composer

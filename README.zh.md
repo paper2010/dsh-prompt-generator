@@ -102,6 +102,17 @@ dsh plugin --profile desktop add .    # 按包名把工作区 link 进 profile
 
 从 profile 的 `dependencies` 与 `dsh.profile.bundles` 移除 `dsh-prompt-optimize`，清理安装目录，如不再需要可删除配置文件 `~/.dsh/prompt-optimize-config.json`。
 
+### 为什么插件列表显示「没有可用的新版本」
+
+这是**预期行为**，不是故障，原因有两层：
+
+1. 本包用 `file:` / `link:` / `github:` 本地方式安装，dsh 的插件管理器判断更新时比对的是 **npm registry 上的 `dist-tags.latest`**；本地目录版本不参与比较，所以只要有同名包在 registry 上，就会拿它来比。
+2. npm 上确实已有一个**同名的第三方包** `dsh-prompt-optimize@0.1.0`（2026-08-15 发布，与本项目无关）。本地是 0.3.x，比它新 → 永远「无更新」。
+
+因此更新本插件请走源码流程（`git pull` → `node scripts/build.mjs` → 把 `dist/` 与 `lib/` 同步进 profile 的安装目录 → 完全退出并重开 DSH），或用 `dsh plugin add github:paper2010/dsh-prompt-optimize` 重新安装。
+
+> ⚠️ 不要执行 `dsh plugin add dsh-prompt-optimize`——按名字解析会装到上面那个第三方 0.1.0。
+
 ## 使用
 
 - 在输入框输入草稿，点 **✨**（或 `Alt+O`）——输入区上方出现预览卡片
