@@ -1,8 +1,8 @@
-/** Prompt 优化插件文案 — 中英双语 */
+/** dsh Prompt Generator 插件文案 — 中英双语 */
 
 import type { Lang } from './optimizer.js';
 
-export const NS = 'prompt_optimizer';
+export const NS = 'prompt_generator';
 
 export const zh = {
   'button.aria': '优化 prompt',
@@ -20,7 +20,7 @@ export const zh = {
   'card.configured.hint': '已配置 · 模型 {model}',
   'card.unconfigured.hint': '未配置 API',
   'guide.title': '请先配置 API',
-  'guide.desc': '前往 设置 → 通用设置 → Prompt 优化，填写接口地址、API Key 与模型名。',
+  'guide.desc': '前往 设置 → 通用设置 → dsh Prompt Generator，填写接口地址、API Key 与模型名。',
   'guide.action': '去设置',
   'guide.dismiss': '知道了',
   'error.unauthorized': 'API Key 无效或已过期',
@@ -33,7 +33,7 @@ export const zh = {
   'error.empty': '返回内容为空，请重试',
   'error.truncated': '输出被长度上限截断，请缩短草稿后重试',
   'error.config': '配置不完整，请到设置中检查',
-  'settings.title': 'Prompt 优化',
+  'settings.title': 'dsh Prompt Generator',
   'settings.desc': '配置重写接口（OpenAI 兼容）；Key 明文保存在本地',
   'settings.aiNotice': 'AI 辅助优化：提示词内核与测试由 AI 生成，经人工审阅后发布',
   'settings.baseUrl': '接口地址',
@@ -75,7 +75,7 @@ export const en: LocaleDict = {
   'card.configured.hint': 'Configured · model {model}',
   'card.unconfigured.hint': 'No API configured',
   'guide.title': 'Configure the API first',
-  'guide.desc': 'Go to Settings → General → Prompt Optimizer and fill in the endpoint, API key, and model.',
+  'guide.desc': 'Go to Settings → General → dsh Prompt Generator and fill in the endpoint, API key, and model.',
   'guide.action': 'Go to settings',
   'guide.dismiss': 'Got it',
   'error.unauthorized': 'API key is invalid or expired',
@@ -88,7 +88,7 @@ export const en: LocaleDict = {
   'error.empty': 'Empty result; please retry',
   'error.truncated': 'Output hit the length limit and was truncated; shorten the draft and retry',
   'error.config': 'Incomplete configuration; check settings',
-  'settings.title': 'Prompt Optimizer',
+  'settings.title': 'dsh Prompt Generator',
   'settings.desc': 'Configure the rewrite endpoint (OpenAI-compatible); key is stored locally in plain text',
   'settings.aiNotice': 'AI-assisted: prompt kernel and tests were AI-generated, then human-reviewed before release',
   'settings.baseUrl': 'Base URL',

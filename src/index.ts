@@ -1,5 +1,5 @@
 // 本项目由 AI 辅助优化完成（提示词内核、测试与文档），发布前经人工审阅。
-/** dsh-prompt-optimize 插件入口 — apply(ctx) */
+/** dsh-prompt-generator 插件入口 — apply(ctx) */
 
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
 import type { Lang, PromptConfig } from './optimizer.js';
@@ -23,10 +23,10 @@ export const inject = ['slots', 'sessions', 'locale'];
 
 export function apply(ctx: ClientContext) {
   // 1. 文案
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'prompt-optimize: locale registration');
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'prompt-generator: locale registration');
 
-  // 2. 配置镜像：HTTP API（server half 读写 ~/.dsh/prompt-optimize-config.json，
-  // 通道 '/dsh-prompt-optimize/api/get|set'）。原先走 connection.rpc 环回通道，但桌面
+  // 2. 配置镜像：HTTP API（server half 读写 ~/.dsh/prompt-generator-config.json，
+  // 通道 '/dsh-prompt-generator/api/get|set'）。原先走 connection.rpc 环回通道，但桌面
   // 宿主运行时没有 connection 服务（fiber 永久 PENDING → 启动挂死），统一走 webServer HTTP。
   let configMirror: PromptConfig = mergeConfig(undefined);
   let configEpoch = 0;
@@ -61,7 +61,7 @@ export function apply(ctx: ClientContext) {
     return typeof sessionId === 'string' && sessionId.length > 0 ? sessionId : null;
   };
   // 2.6 宿主通道（会话默认模型 + server 半 llm.stream，零配置）：
-  // 通道即自有 RPC（/dsh-prompt-optimize）；server half 用 agentDefaultModel 取当前
+  // 通道即自有 RPC（/dsh-prompt-generator）；server half 用 agentDefaultModel 取当前
   // 会话模型、llm.stream 真流式（取自 dsh-elf 已验证的宿主服务面）。不用 session.create/
   // fork：后台会话不在前台不触发模型执行，自编 id 被静默拒绝 → 「永远正在优化」（实测）。
   const hostRpc: HostRpc = {
@@ -98,7 +98,7 @@ export function apply(ctx: ClientContext) {
       scope.slots.register(
         {
           name: 'conversation.input.right',
-          id: 'prompt-optimize-button',
+          id: 'prompt-generator-button',
           order: 0,
           locale: NS,
           inject: () => ({
@@ -116,7 +116,7 @@ export function apply(ctx: ClientContext) {
       scope.slots.register(
         {
           name: 'conversation.input.overlay',
-          id: 'prompt-optimize-card',
+          id: 'prompt-generator-card',
           order: 10,
           locale: NS,
           inject: () => ({
@@ -181,7 +181,7 @@ export function apply(ctx: ClientContext) {
       scope.slots.register(
         {
           name: 'settings.general.item',
-          id: 'prompt-optimize-settings',
+          id: 'prompt-generator-settings',
           order: 30,
           locale: NS,
           store: settingsStore,
@@ -230,7 +230,7 @@ export function apply(ctx: ClientContext) {
     };
     document.addEventListener('keydown', onKeydown);
     return () => document.removeEventListener('keydown', onKeydown);
-  }, 'prompt-optimize: alt+o shortcut');
+  }, 'prompt-generator: alt+o shortcut');
 }
 
 // 引用守卫：避免 tree-shake 掉类型（仅文档性；无运行时行为）

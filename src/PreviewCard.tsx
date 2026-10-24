@@ -18,7 +18,7 @@ export interface PreviewCardProps {
   getSessionId?: () => string | null;
 }
 
-const CSS_ID = 'dsh-prompt-optimize/card.css';
+const CSS_ID = 'dsh-prompt-generator/card.css';
 function injectCss() {
   if (typeof document === 'undefined' || document.querySelector(`style[data-plugin-css="${CSS_ID}"]`)) return;
   const style = document.createElement('style');

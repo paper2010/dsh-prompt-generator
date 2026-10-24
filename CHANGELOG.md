@@ -4,6 +4,15 @@
 
 > 本项目由 AI 辅助优化完成，标注位置与统一措辞见 README 的「AI 辅助说明」。
 
+## 0.4.0
+
+### 改名（不兼容）
+
+- 项目与包名 `dsh-prompt-optimize` → **`dsh-prompt-generator`**，展示名统一为 **dsh Prompt Generator**（README 标题、设置页标题、包描述、截图 alt）。包名不带空格是因为 npm / dsh 的包标识不允许空格，展示名保留空格写法。
+- 连带改动：client bundle 的 load id、`cordis.patch.yml` 的 insert id（`prompt-generator`）与 name、HTTP 前缀 `/dsh-prompt-generator/api`、配置文件 `~/.dsh/prompt-generator-config.json`、调试日志 `prompt-generator-debug.log`、localStorage 键 `dsh-prompt-generator.memory.v1`、组件与 CSS 注入 id、locale 命名空间 `prompt_generator`。
+- **升级注意**：包名变化，dsh 不会自动替换旧包。需从 profile 的 `dependencies` 与 `dsh.profile.bundles` 移除 `dsh-prompt-optimize`，再安装本包，否则会出现两个 ✨ 按钮。
+- **数据迁移**：配置按 `prompt-generator-config.json` → `prompt-optimize-config.json` → `prompt-architect-config.json` → `prompt-optimizer-config.json` 顺序回退读取，首次保存后落到新路径；学习记录按新到旧尝试旧键，读到即迁移并删除旧键，不丢偏好。
+
 ## 0.3.1
 
 ### 修复

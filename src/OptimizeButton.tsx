@@ -16,7 +16,7 @@ export interface OptimizeButtonProps {
   getSessionId?: () => string | null;
 }
 
-const CSS_ID = 'dsh-prompt-optimize/button.css';
+const CSS_ID = 'dsh-prompt-generator/button.css';
 function injectCss() {
   if (typeof document === 'undefined' || document.querySelector(`style[data-plugin-css="${CSS_ID}"]`)) return;
   const style = document.createElement('style');

@@ -71,7 +71,7 @@ function defineStore(decl: {
         store,
         clearPersisted: () => {
           if (typeof localStorage !== 'undefined') {
-            try { localStorage.removeItem('dsh-prompt-optimize/settings'); } catch {}
+            try { localStorage.removeItem('dsh-prompt-generator/settings'); } catch {}
           }
         },
       };

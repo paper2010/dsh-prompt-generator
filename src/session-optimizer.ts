@@ -8,7 +8,7 @@
  *   optimize.stream    → SSE 真流式：llm.stream 每个 text-delta 即时推送（逐 token）
  *   optimize.start     → 后台流式累积（降级方案）
  *   optimize.poll      → 取 { done, text }（降级方案）
- * client 经 HTTP SSE（/dsh-prompt-optimize/api/optimize.stream）逐 token 呈现。
+ * client 经 HTTP SSE（/dsh-prompt-generator/api/optimize.stream）逐 token 呈现。
  */
 
 import { OptimizeError, type Lang } from './optimizer.js';
@@ -24,14 +24,14 @@ export interface HostRpc {
 
 /**
  * HTTP JSON API 通道（dsh-elf 方式）：渲染进程页面由宿主 webServer 提供，相对路径 fetch
- * 直达 `/dsh-prompt-optimize/api/<method>`，完全绕开 connection.rpc.call——
+ * 直达 `/dsh-prompt-generator/api/<method>`，完全绕开 connection.rpc.call——
  * desktop 的 rpc.call 在同一流程第二次调用会挂死（实测 sessionModel 成功、第二次永不达）。
  */
 export async function callHost<R = unknown>(
   method: string,
   args: Record<string, unknown>,
 ): Promise<{ ok: boolean; value?: R; error?: { code?: string; details?: unknown } }> {
-  const response = await fetch(`/dsh-prompt-optimize/api/${encodeURIComponent(method)}`, {
+  const response = await fetch(`/dsh-prompt-generator/api/${encodeURIComponent(method)}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(args),
@@ -194,7 +194,7 @@ export async function streamHostOptimize(opts: StreamHostOptimizeOptions): Promi
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let out = '';
   try {
-    const response = await fetch('/dsh-prompt-optimize/api/optimize.stream', {
+    const response = await fetch('/dsh-prompt-generator/api/optimize.stream', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({

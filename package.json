@@ -1,7 +1,7 @@
 {
-  "name": "dsh-prompt-optimize",
-  "version": "0.3.1",
-  "description": "DSH 输入框 prompt 重写插件（提示词架构师）：把草稿重写为能直接驱动模型的高质量 prompt，改写幅度随草稿信息密度自适应，不套固定扩写倍数。默认复用当前会话模型（零配置，SSE 流式 + 推理过程实时可见），也支持自配 OpenAI 兼容 API。衍生自 winditer/dsh-prompt-optimizer。",
+  "name": "dsh-prompt-generator",
+  "version": "0.4.0",
+  "description": "dsh Prompt Generator —— DSH 输入框 prompt 生成/重写插件：把草稿重写为能直接驱动模型的高质量 prompt，改写幅度随草稿信息密度自适应，不套固定扩写倍数。默认复用当前会话模型（零配置，SSE 流式 + 推理过程实时可见），也支持自配 OpenAI 兼容 API。衍生自 winditer/dsh-prompt-optimizer。",
   "license": "MIT",
   "author": "paper2010 <lizonghui2010@qq.com>",
   "contributors": [
@@ -9,11 +9,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paper2010/dsh-prompt-optimize.git"
+    "url": "git+https://github.com/paper2010/dsh-prompt-generator.git"
   },
-  "homepage": "https://github.com/paper2010/dsh-prompt-optimize#readme",
+  "homepage": "https://github.com/paper2010/dsh-prompt-generator#readme",
   "bugs": {
-    "url": "https://github.com/paper2010/dsh-prompt-optimize/issues"
+    "url": "https://github.com/paper2010/dsh-prompt-generator/issues"
   },
   "type": "module",
   "exports": {
@@ -61,7 +61,7 @@
     "dsh",
     "dsh-plugin",
     "prompt",
-    "prompt-optimize",
+    "prompt-generator",
     "prompt-engineering",
     "rewrite",
     "deepseek",

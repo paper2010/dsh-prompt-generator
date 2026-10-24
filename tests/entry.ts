@@ -786,7 +786,7 @@ async function runStateTests(check: (name: string, fn: () => void | Promise<void
 
 async function runLocaleTests(check: (name: string, fn: () => void | Promise<void>) => void) {
   await check('NS value', () => {
-    assert.strictEqual(NS, 'prompt_optimizer');
+    assert.strictEqual(NS, 'prompt_generator');
   });
   await check('zh/en have identical key sets', () => {
     const keys = (d: Record<string, unknown>) => Object.keys(d).sort();
